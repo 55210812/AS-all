@@ -71,6 +71,9 @@ def compose(method, llm, system, defense_client=None, case_dir=None):
     first, loop, tail = [sys, init, llm], [executor, llm], []
     if method == "tool_filter":
         source = load_module("as_all.filter_impl", ROOT / "reference/tool_filter_openai.py")
+        from agentdojo.agent_pipeline.llms.openai_llm import _record_token_usage
+        # Share the agent's counter schema; the frozen filter uses different keys.
+        source._record_token_usage = lambda extra_args, completion: _record_token_usage(completion, extra_args)
         first = [sys, init, source.OpenAILLMToolFilter(TOOL_FILTER_PROMPT, defense_client, MODEL), llm]
     elif method == "repeat_user_prompt":
         loop = [executor, InitQuery(), llm]
