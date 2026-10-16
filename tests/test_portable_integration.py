@@ -1,4 +1,29 @@
 from as_all.methods import ROOT, load_module
+import pytest
+
+
+@pytest.mark.parametrize("selection", ["", "I cannot fulfill this request.", "unknown_tool"])
+def test_tool_filter_unmatched_response_retains_no_tools(selection):
+    from as_all.methods import compose
+    from agentdojo.agent_pipeline.llms.openai_llm import OpenAILLM
+    from agentdojo.functions_runtime import FunctionsRuntime
+
+    fixture = load_module("as_all.empty_filter_fixture", ROOT / "reference/tests/test_pipeline_integration.py")
+    runtime = FunctionsRuntime()
+
+    @runtime.register_function
+    def read_file(filename: str) -> str:
+        """Read a file.
+
+        :param filename: File to read.
+        """
+        raise AssertionError("Filtering must not execute domain tools")
+
+    client = fixture.ScriptedClient([fixture.reply(selection)])
+    pipeline = compose("tool_filter", OpenAILLM(client, "gemini-2.5-flash"), "Help")
+    pipeline.elements[2].query("Read", runtime, messages=[], extra_args={})
+    assert not runtime.functions
+    assert len(client.requests) == 1
 
 
 def test_tool_filter_then_agent_usage_and_execution():

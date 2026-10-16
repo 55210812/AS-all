@@ -45,6 +45,8 @@ bash run.sh status
 
 ## 小范围验收
 
+当前已知局限：Tool Filtering在Gemini返回拒绝说明或无匹配工具名时仍会筛空工具。2026-10-16的22例实测均正常终止，但该方法两例Utility均失败，其中Attack例保留0个工具。详见[方法说明](docs/METHODS.md)。
+
 ```bash
 bash run.sh start --acceptance
 ```
