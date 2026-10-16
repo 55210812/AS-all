@@ -232,8 +232,8 @@ def _tmux_shell_command(run_dir: Path, *, acceptance: bool) -> str:
         if acceptance:
             args.append("--acceptance")
         return " ".join([f"AS_ALL_PYTHON={shlex.quote(os.environ['AS_ALL_PYTHON'])}",
-                         f"PYTHONPATH={shlex.quote(os.environ.get('PYTHONPATH', ''))}", shlex.join(args)])
-    return shlex.join(args)
+                         f"PYTHONPATH={shlex.quote(os.environ.get('PYTHONPATH', ''))}", shlex.join(args)]) + " > " + shlex.quote(str(run_dir / "run.log")) + " 2>&1"
+    return shlex.join(args) + " > " + shlex.quote(str(run_dir / "run.log")) + " 2>&1"
 
 
 def _install_crontab(root: Path, run_dir: Path) -> None:

@@ -9,6 +9,13 @@ import pytest
 from as_all.transport import MODEL, NativeClient
 
 
+def test_existing_openai_style_base_uses_native_route_without_double_version():
+    assert NativeClient._generate_content_url("https://example.invalid/v1") == (
+        "https://example.invalid/v1beta/models/gemini-2.5-flash:generateContent")
+    assert NativeClient._generate_content_url("https://example.invalid/proxy/v1beta") == (
+        "https://example.invalid/proxy/v1beta/models/gemini-2.5-flash:generateContent")
+
+
 def _response(*, tool: bool = False, usage: bool = True, signature: str | None = None) -> dict:
     if tool:
         part = {"functionCall": {"name": "lookup", "args": {"item": "a"}}}

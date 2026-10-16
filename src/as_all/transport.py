@@ -222,6 +222,8 @@ class NativeClient:
         if parsed.username or parsed.password or parsed.fragment:
             raise ValueError("GEMINI_BASE_URL must not embed user credentials or fragments")
         path = parsed.path.rstrip("/")
+        if path.endswith("/v1"):
+            path = path[:-3]
         if not path.endswith("/v1beta"):
             path += "/v1beta"
         path += f"/models/{MODEL}:generateContent"

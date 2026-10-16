@@ -101,7 +101,8 @@ def test_tmux_command_quotes_hostile_path_and_contains_no_secret(tmp_path: Path)
     run_dir = tmp_path / "run; touch injected"
     command = bootstrap._tmux_shell_command(run_dir, acceptance=False)
     split_command = shlex.split(command)
-    assert split_command[-2:] == ["--run-dir", str(run_dir.resolve())]
+    assert split_command[split_command.index("--run-dir") + 1] == str(run_dir.resolve())
+    assert str(run_dir / "run.log") in split_command
     assert "GEMINI_API_KEY" not in command
 
 
