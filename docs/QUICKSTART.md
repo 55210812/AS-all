@@ -1,7 +1,7 @@
 # Quick start
 
-The package runs eight defenses on the fixed Gemini full benchmark: 97 Clean
-and 949 Attack cases per method, or 8,368 paid model cases in total. Benchmark
+The package runs eleven methods on the fixed Gemini full benchmark: 97 Clean
+and 949 Attack cases per method, or 11,506 paid cases in total. Benchmark
 tools operate only on AgentDojo's simulated environments.
 
 ## Requirements
@@ -13,8 +13,8 @@ tools operate only on AgentDojo's simulated environments.
 - A Gemini API key with access to `gemini-2.5-flash`
 - Enough disk space for the pinned injection-detector weights
 
-Install `uv` with one of its documented package-manager or standalone methods.
-`run.sh` intentionally does not pipe a remote installer into a shell.
+If uv is missing, run.sh installs uv0.9.18 into a project-private bootstrap
+environment using Python3's venv and pip. It does not alter system Python or pipe a remote script into a shell.
 
 ## Run
 
@@ -34,7 +34,7 @@ The script then:
 
 1. creates the locked project environment with `uv sync --frozen`;
 2. runs the offline/readiness preflight and downloads the pinned detector once;
-3. displays the exact 8,368-case paid-run warning;
+3. displays the exact 11,506-case paid-run warning;
 4. starts the run in a repository-specific tmux session after explicit confirmation;
 5. installs one repository-specific, read-only watchdog cron entry every 10 minutes.
 
@@ -60,14 +60,14 @@ duplicate. If the session stopped, it reuses the active run directory so the
 experiment CLI can continue only work that was not already completed. Partial
 requests are retained for review rather than blindly resent.
 
-For the isolated 16-case live acceptance set, use:
+For the isolated 22-case live acceptance set, use:
 
 ```bash
 bash run.sh start --acceptance
 ```
 
 Acceptance output uses the same result structure but is not mixed into the
-8,368-case formal run.
+11,506-case formal run.
 
 After completion, package and return the selected reports with:
 

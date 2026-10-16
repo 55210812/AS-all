@@ -1,6 +1,6 @@
 """Portable case lifecycle. A claim is an execution boundary, not a retry ticket."""
 import argparse
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from contextlib import contextmanager
 import fcntl
 import hashlib
@@ -31,9 +31,12 @@ def sha(path):
 
 
 def source_hashes():
-    return {str(p.relative_to(ROOT)): sha(p) for folder in ("src", "vendor", "reference", "data")
+    hashes = {str(p.relative_to(ROOT)): sha(p) for folder in ("src", "vendor", "reference", "data", "tools")
             for p in sorted((ROOT / folder).rglob("*")) if p.is_file()
             and "__pycache__" not in p.parts and not p.name.endswith((".pyc", ".egg-info"))}
+    for name in ("pyproject.toml", "uv.lock", "run.sh", "feedback.sh", ".python-version"):
+        hashes[name] = sha(ROOT / name)
+    return hashes
 
 
 def registry(acceptance=False):
@@ -61,6 +64,9 @@ def preflight(run_dir, acceptance=False, download=True):
                 "workers": 4, "case_retries": 0, "manager_restores": 0,
                 "agent_thinking_budget": -1, "defense_thinking_budget": 0, "temperature": 0,
                 "source_hashes": source_hashes()}
+    key = os.environ.get("GEMINI_API_KEY")
+    if key:
+        manifest["channel_fingerprint"] = hashlib.sha256((os.environ.get("GEMINI_BASE_URL", "") + "\0" + key).encode()).hexdigest()
     path = run_dir / "manifest.json"
     tasks = read(ROOT / "data/task_texts97.json")
     frames = read(ROOT / "data/manual_frames97.json")
@@ -175,6 +181,9 @@ def run(run_dir, acceptance=False):
     manifest = read(run_dir / "manifest.json")
     if manifest["acceptance_only"] != acceptance or manifest["source_hashes"] != source_hashes():
         raise RuntimeError("FrozenSourceMismatch")
+    fingerprint = manifest.get("channel_fingerprint")
+    if fingerprint and fingerprint != hashlib.sha256((os.environ.get("GEMINI_BASE_URL", "") + "\0" + os.environ.get("GEMINI_API_KEY", "")).encode()).hexdigest():
+        raise RuntimeError("FrozenChannelMismatch")
     with manager_lock(run_dir):
         atomic(run_dir / "process.json", {"pid": os.getpid(), "started": time.time()})
         pending = []
@@ -194,17 +203,21 @@ def run(run_dir, acceptance=False):
             last_report = 0.
             with ProcessPoolExecutor(max_workers=4, max_tasks_per_child=1,
                                      mp_context=multiprocessing.get_context("spawn")) as pool:
-                futures = [pool.submit(worker, *args) for args in pending]
-                for future in as_completed(futures):
-                    future.result()
+                jobs = iter(pending)
+                futures = {pool.submit(worker, *args) for args in list(next(jobs, None) for _ in range(4)) if args}
+                while futures:
+                    done, futures = wait(futures, return_when=FIRST_COMPLETED)
+                    for future in done:
+                        future.result()
+                        if not (run_dir / "STOP.json").exists():
+                            args = next(jobs, None)
+                            if args:
+                                futures.add(pool.submit(worker, *args))
                     if time.monotonic() - last_report >= 30:
                         report(run_dir)
                         last_report = time.monotonic()
                     if shutil.disk_usage(run_dir).free < 1024**3:
                         atomic(run_dir / "STOP.json", {"reason": "DiskBelow1GiB"})
-                        for queued in futures:
-                            queued.cancel()
-                        break
         finally:
             report(run_dir)
 
