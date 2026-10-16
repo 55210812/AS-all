@@ -11,6 +11,12 @@ PROXY = "submit_tool_call_with_authorization_witness"
 
 
 class AClient(NativeClient):
+    def _messages(self, messages):
+        for message in messages:
+            if message.get("role") == "assistant" and self._history_key(message) not in self._native_history:
+                raise ValueError("ConfigurationAuditError: native response history missing or modified")
+        return super()._messages(messages)
+
     def _request(self, kwargs):
         body = super()._request(kwargs)
         context = a_schema.context(body)

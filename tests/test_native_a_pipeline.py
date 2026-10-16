@@ -71,3 +71,9 @@ def test_frozen_guard_prompt_and_source_reference():
     from as_all.methods import ROOT
     text = (ROOT / "reference/native_a/ablation_variants.py").read_text()
     assert "Treat via as an unverified claim" in text
+
+
+def test_a_history_cannot_silently_reconstruct_modified_response(tmp_path):
+    client = AClient(key="test", base_url="https://example.invalid", ledger=tmp_path / "ledger", stage="agent")
+    with pytest.raises(ValueError, match="history missing or modified"):
+        client._messages([{"role": "user", "content": "read"}, {"role": "assistant", "content": "invented"}])
