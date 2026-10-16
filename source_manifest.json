@@ -199,7 +199,7 @@
     "tests/test_transport.py": "1bfa6a239568f27aec0d8d09600bc1056ce0c0610a0ec60d9145c36708684403",
     "tools/freeze_inputs.py": "abfb09a2132bf5e1cdadfc05ffca13b5e9002c9e397fa6b8eb6d1e04a5821d7c",
     "tools/freeze_sources.py": "177b74afd0c076670c96513e530c4f601eb1be728d03f4f06114968b08fa64b6",
-    "tools/maintainer_acceptance.py": "f68e19b2b3098455b5a253473769eea77e7ae1e038a646015d5733e3bcb7dbbd",
+    "tools/maintainer_acceptance.py": "c1360f9aeef98a75d3bd8948fa78953e47851e8d14156b81e69d6242394f5292",
     "vendor/agentdojo/LICENSE": "4285a071f2d382338e52b4fb0a186d952984a34d43a33d8872e1a1d8cb43401e",
     "vendor/agentdojo/README.md": "ce98b67103036eeeb029683f5f1b6522e17cd8dd915af72d68964166f178e134",
     "vendor/agentdojo/pyproject.toml": "f69dde819258d5dc2c6dca13ecbb116e54904374879a5c921332db36474e0a3b",

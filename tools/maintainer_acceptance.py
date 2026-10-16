@@ -5,8 +5,9 @@ This helper never copies the channel file or prints its contents. Not the end-us
 import argparse
 from pathlib import Path
 from dotenv import load_dotenv
-from as_all.bootstrap import _write_secrets, repo_root, start
+from as_all.bootstrap import _write_secrets, repo_root
 import os
+import subprocess
 
 def main():
     parser = argparse.ArgumentParser()
@@ -17,7 +18,8 @@ def main():
         "GEMINI_API_KEY": os.environ["GEMINI_API_KEY"],
         "GEMINI_BASE_URL": os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"),
     })
-    start(repo_root(), non_interactive=True, acceptance=True)
+    subprocess.run(["bash", "run.sh", "start", "--non-interactive", "--acceptance"],
+                   cwd=repo_root(), check=True)
 
 if __name__ == "__main__":
     main()
