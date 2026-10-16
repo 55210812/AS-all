@@ -26,7 +26,9 @@ def load_module(name, path):
 
 def detector_path():
     from huggingface_hub import snapshot_download
-    return snapshot_download("protectai/deberta-v3-base-prompt-injection-v2", revision=DETECTOR_REVISION)
+    return snapshot_download("protectai/deberta-v3-base-prompt-injection-v2", revision=DETECTOR_REVISION,
+                             allow_patterns=["config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json",
+                                             "special_tokens_map.json", "added_tokens.json", "spm.model"])
 
 
 def compose(method, llm, system, defense_client=None, case_dir=None):
