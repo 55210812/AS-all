@@ -25,6 +25,16 @@ def test_secret_file_has_owner_only_permissions(tmp_path: Path, monkeypatch: pyt
     assert "hf-secret" in path.read_text(encoding="utf-8")
 
 
+def test_reuse_environment_bypasses_uv_and_preserves_acceptance(tmp_path, monkeypatch):
+    monkeypatch.setenv("AS_ALL_PYTHON", "/existing/env/python")
+    monkeypatch.setenv("PYTHONPATH", "/project/src")
+    assert bootstrap._cli_args("run", tmp_path, acceptance=True) == [
+        "/existing/env/python", "-m", "as_all.cli", "run", "--run-dir", str(tmp_path), "--acceptance"]
+    command = bootstrap._tmux_shell_command(tmp_path, acceptance=True)
+    assert "AS_ALL_PYTHON=/existing/env/python" in command
+    assert "uv run" not in command and "--acceptance" in command
+
+
 def test_start_does_not_duplicate_live_tmux_session(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

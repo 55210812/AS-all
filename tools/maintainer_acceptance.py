@@ -5,17 +5,19 @@ This helper never copies the channel file or prints its contents. Not the end-us
 import argparse
 from pathlib import Path
 from dotenv import load_dotenv
-from as_all.cli import preflight, run
+from as_all.bootstrap import _write_secrets, repo_root, start
+import os
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--channel-file", required=True, type=Path)
-    parser.add_argument("--run-dir", required=True, type=Path)
     args = parser.parse_args()
     load_dotenv(args.channel_file, override=True)
-    args.run_dir.mkdir(parents=True, exist_ok=True)
-    preflight(args.run_dir.resolve(), acceptance=True)
-    run(args.run_dir.resolve(), acceptance=True)
+    _write_secrets(repo_root() / ".secrets.env", {
+        "GEMINI_API_KEY": os.environ["GEMINI_API_KEY"],
+        "GEMINI_BASE_URL": os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"),
+    })
+    start(repo_root(), non_interactive=True, acceptance=True)
 
 if __name__ == "__main__":
     main()

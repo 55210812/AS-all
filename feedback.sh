@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON="$ROOT/.venv/bin/python"
+PYTHON="${AS_ALL_PYTHON:-$ROOT/.venv/bin/python}"
 
 if [[ ! -x "$PYTHON" ]]; then
   echo "未找到项目虚拟环境。请先运行 bash run.sh 完成安装。" >&2
@@ -22,5 +22,5 @@ if [[ $# -gt 0 ]]; then
   args+=(--run-dir "$1")
 fi
 
-export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$ROOT/src:$ROOT/vendor/agentdojo/src:$ROOT/vendor/core/src${PYTHONPATH:+:$PYTHONPATH}"
 exec "$PYTHON" -m as_all.feedback "${args[@]}"

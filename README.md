@@ -51,6 +51,14 @@ bash run.sh start --acceptance
 
 每方法同一条Clean和Attack，共22例，独立结果目录。验收只证明接口和执行路径，不是全量准确率或性能非劣证明。正式全量不会自动接续。
 
+已有Python3.12环境可直接复用依赖，跳过创建环境和重新下载PyTorch：
+
+```bash
+AS_ALL_PYTHON=/absolute/path/to/existing/python bash run.sh start --acceptance
+```
+
+本次验收使用服务器既有环境；不再以全新Linux环境模拟作为发布前置条件。
+
 ## 一键反馈
 
 ```bash

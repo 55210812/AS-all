@@ -191,12 +191,18 @@ def _cli_args(command: str, run_dir: Path, *, acceptance: bool = False) -> list[
         command,
     ]
     args.extend(["--run-dir", str(run_dir.resolve())])
+    if os.environ.get("AS_ALL_PYTHON"):
+        args = [os.environ["AS_ALL_PYTHON"], "-m", "as_all.cli", command, "--run-dir", str(run_dir.resolve())]
     if acceptance:
         args.append("--acceptance")
     return args
 
 
 def _sync(root: Path) -> None:
+    if os.environ.get("AS_ALL_PYTHON"):
+        _run([os.environ["AS_ALL_PYTHON"], "-c",
+              "import sys,httpx,torch,transformers,openai,pydantic; assert sys.version_info[:2] == (3,12), 'Python3.12 required'"], cwd=root)
+        return
     _run(["uv", "sync", "--frozen", "--python", "3.12"], cwd=root)
 
 
@@ -221,6 +227,12 @@ def _tmux_shell_command(run_dir: Path, *, acceptance: bool) -> str:
     ]
     if acceptance:
         args.append("--acceptance")
+    if os.environ.get("AS_ALL_PYTHON"):
+        args = [os.environ["AS_ALL_PYTHON"], "-m", "as_all.bootstrap", "_run-cli", "--run-dir", str(run_dir.resolve())]
+        if acceptance:
+            args.append("--acceptance")
+        return " ".join([f"AS_ALL_PYTHON={shlex.quote(os.environ['AS_ALL_PYTHON'])}",
+                         f"PYTHONPATH={shlex.quote(os.environ.get('PYTHONPATH', ''))}", shlex.join(args)])
     return shlex.join(args)
 
 
@@ -248,26 +260,15 @@ def _install_crontab(root: Path, run_dir: Path) -> None:
         index += 1
 
     uv = shutil.which("uv")
-    if uv is None:
+    if uv is None and not os.environ.get("AS_ALL_PYTHON"):
         raise BootstrapError("uv disappeared before watchdog installation")
-    shell_command = " ".join(
-        [
-            "cd",
-            shlex.quote(str(root.resolve())),
-            "&&",
-            shlex.quote(uv),
-            "run",
-            "--frozen",
-            "--python",
-            "3.12",
-            "python",
-            "-m",
-            "as_all.cli",
-            "watchdog",
-            "--run-dir",
-            shlex.quote(str(run_dir.resolve())),
-        ]
-    )
+    environment = ""
+    if os.environ.get("AS_ALL_PYTHON"):
+        environment = f"AS_ALL_PYTHON={shlex.quote(os.environ['AS_ALL_PYTHON'])} PYTHONPATH={shlex.quote(os.environ.get('PYTHONPATH', ''))} "
+    command = _cli_args("watchdog", run_dir)
+    if not os.environ.get("AS_ALL_PYTHON"):
+        command[0] = uv
+    shell_command = f"cd {shlex.quote(str(root.resolve()))} && {environment}{shlex.join(command)}"
     kept.extend([f"# {marker}", f"*/10 * * * * {shell_command}"])
     content = "\n".join(kept).rstrip() + "\n"
     subprocess.run(
@@ -317,7 +318,8 @@ def start(
     non_interactive: bool = False,
     acceptance: bool = False,
 ) -> Path:
-    _require_program("uv", "See https://docs.astral.sh/uv/getting-started/installation/")
+    if not os.environ.get("AS_ALL_PYTHON"):
+        _require_program("uv", "See https://docs.astral.sh/uv/getting-started/installation/")
     _require_program("tmux", "Install it with your Linux package manager.")
     _require_program("crontab", "Install your distribution's cron package.")
     configure_secrets(root, non_interactive=non_interactive)

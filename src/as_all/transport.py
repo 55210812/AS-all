@@ -219,6 +219,8 @@ class NativeClient:
         parsed = urlsplit(base_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("GEMINI_BASE_URL must be an absolute HTTP(S) URL")
+        if parsed.username or parsed.password or parsed.fragment:
+            raise ValueError("GEMINI_BASE_URL must not embed user credentials or fragments")
         path = parsed.path.rstrip("/")
         if not path.endswith("/v1beta"):
             path += "/v1beta"
