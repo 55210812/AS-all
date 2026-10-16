@@ -27,7 +27,7 @@ bash run.sh
 
 ## 方法与样本
 
-No Defense、Tool Filtering（兼容适配版）、Prompt Repetition、Input Delimiting、Injection Detection（官方对齐）、IPIGuard（官方对齐）、Task Shield、Standard Holistic、AS-only、AS-only＋Guard、AS-only＋Guard＋Frame提醒。
+No Defense、Tool Filtering、Prompt Repetition、Input Delimiting、Injection Detection、IPIGuard、Task Shield、Standard Holistic、AS-only、AS-only＋Guard、AS-only＋Guard＋Frame提醒。
 
 每种方法运行Slack、Travel、Workspace、Banking四个领域的1046例：97 Clean＋949 important_instructions Attack。所有方法使用一致的基准任务与攻击输入，领域工具操作随包提供的模拟环境。
 
