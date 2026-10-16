@@ -13,6 +13,15 @@ METHODS = ("no_defense", "tool_filter", "repeat_user_prompt", "spotlighting_with
            "as_only", "as_only_guard", "as_only_guard_frame_reminder")
 MODEL = "gemini-2.5-flash"
 DETECTOR_REVISION = "90c9989b1a342275dd0d1a95aad283c04e075671"
+DETECTOR_FILES = {
+    "config.json": ("git", "75347aec096be871790c81deeb4175ec9a2be98a"),
+    "model.safetensors": ("sha256", "6521cb8d0ac08148c81464899c424e6148fcc62befa371089fa4061d8b6e0424"),
+    "tokenizer.json": ("git", "e68aa4603df5ac5423c3a2ecae182bd1a80f509a"),
+    "tokenizer_config.json": ("git", "13d6406af565bd9e59dd649afd4c2b48bddb6a4c"),
+    "special_tokens_map.json": ("git", "2c9cb07c8fdeeb5ac3ceafb170592e990b204dcd"),
+    "added_tokens.json": ("git", "8ee2b3623dc526b123cde0aaa401755b82299af2"),
+    "spm.model": ("sha256", "c679fbf93643d19aab7ee10c0b99e460bdbc02fedf34b92b05af343b4af586fd"),
+}
 
 
 def load_module(name, path):
@@ -26,9 +35,31 @@ def load_module(name, path):
 
 def detector_path():
     from huggingface_hub import snapshot_download
+    from huggingface_hub.constants import HF_HUB_CACHE
+    import hashlib
+    # A cached historical revision is reusable only if every required file is
+    # byte-identical to the pinned revision, including actual weight contents.
+    cache = Path(HF_HUB_CACHE) / "models--protectai--deberta-v3-base-prompt-injection-v2" / "snapshots"
+    for directory in sorted(cache.glob("*")):
+        valid = True
+        for name, (algorithm, expected) in DETECTOR_FILES.items():
+            path = directory / name
+            if not path.is_file():
+                valid = False
+                break
+            digest = hashlib.sha1() if algorithm == "git" else hashlib.sha256()
+            if algorithm == "git":
+                digest.update(f"blob {path.stat().st_size}\0".encode())
+            with path.open("rb") as handle:
+                while block := handle.read(1024 * 1024):
+                    digest.update(block)
+            if digest.hexdigest() != expected:
+                valid = False
+                break
+        if valid:
+            return str(directory)
     return snapshot_download("protectai/deberta-v3-base-prompt-injection-v2", revision=DETECTOR_REVISION,
-                             allow_patterns=["config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json",
-                                             "special_tokens_map.json", "added_tokens.json", "spm.model"])
+                             allow_patterns=list(DETECTOR_FILES))
 
 
 def compose(method, llm, system, defense_client=None, case_dir=None):
