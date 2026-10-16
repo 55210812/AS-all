@@ -101,6 +101,24 @@ def alive(pid):
         return False
 
 
+def check_request_boundary(run_dir):
+    if (run_dir / "STOP.json").exists():
+        raise RuntimeError("ExperimentStoppedBeforeRequest")
+    manifest = read(run_dir / "manifest.json")
+    reason = None
+    if manifest["source_hashes"] != source_hashes():
+        reason = "FrozenSourceMismatch"
+    fingerprint = manifest.get("channel_fingerprint")
+    actual = hashlib.sha256((os.environ.get("GEMINI_BASE_URL", "") + "\0" + os.environ.get("GEMINI_API_KEY", "")).encode()).hexdigest()
+    if fingerprint and actual != fingerprint:
+        reason = "FrozenChannelMismatch"
+    if shutil.disk_usage(run_dir).free < 1024**3:
+        reason = "DiskBelow1GiB"
+    if reason:
+        atomic(run_dir / "STOP.json", {"reason": reason})
+        raise RuntimeError(reason)
+
+
 def worker(case, directory):
     directory = Path(directory)
     atomic(directory / "claim.json", {"pid": os.getpid(), "started": time.time(), "id": case["id"]})
@@ -238,7 +256,9 @@ def watchdog(run_dir):
     current.update(checked_at=time.time(), process_alive=alive(process.get("pid")), manager_restores=0,
                    free_bytes=shutil.disk_usage(run_dir).free,
                    source_mismatch=read(run_dir / "manifest.json")["source_hashes"] != source_hashes())
-    current["stalled_checks"] = previous.get("stalled_checks", 0) + 1 if current["terminal"] == previous.get("terminal") else 0
+    current["ledger_bytes"] = sum(p.stat().st_size for p in (run_dir / "cases").glob("*/requests.jsonl"))
+    unchanged = (current["terminal"], current["ledger_bytes"]) == (previous.get("terminal"), previous.get("ledger_bytes"))
+    current["stalled_checks"] = previous.get("stalled_checks", 0) + 1 if unchanged else 0
     atomic(run_dir / "watchdog.json", current)
     return current
 

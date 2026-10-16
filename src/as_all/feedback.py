@@ -267,6 +267,7 @@ def _ensure_gh_auth() -> None:
 
 def publish_bundle(repo_root: Path, run_dir: Path, bundle_dir: Path, archive: Path) -> str:
     _ensure_gh_auth()
+    run_command(["gh", "auth", "setup-git"])
     can_push_upstream = _git_has_upstream_write()
     login = run_command(["gh", "api", "user", "--jq", ".login"], capture=True)
     publish_repo = UPSTREAM_REPOSITORY if can_push_upstream else f"{login}/AS-all"
@@ -333,7 +334,8 @@ def publish_bundle(repo_root: Path, run_dir: Path, bundle_dir: Path, archive: Pa
                 )
 
             run_command(["git", "add", "feedback"], cwd=worktree)
-            run_command(["git", "commit", "-m", f"Add feedback for {run_dir.name}"], cwd=worktree)
+            run_command(["git", "-c", f"user.name={login}", "-c", f"user.email={login}@users.noreply.github.com",
+                         "commit", "-m", f"Add feedback for {run_dir.name}"], cwd=worktree)
             push_url = f"https://github.com/{publish_repo}.git"
             run_command(["git", "push", push_url, f"HEAD:refs/heads/{branch}"], cwd=worktree)
 

@@ -14,7 +14,7 @@ def test_actual_executor_and_native_history(method, decision, tmp_path):
     requests = []
     support = {"action_support": {"root": "t1", "via": "Get article to summarize", "authorization_evidence": None}}
     native = {"role": "model", "parts": [{"text": "consider", "thought": True, "thoughtSignature": "full-part-signature"},
-        {"functionCall": {"name": "lookup", "args": {"x": "hello", "authorization_witness": support}},
+        {"functionCall": {"id": "native-call", "name": "lookup", "args": {"x": "hello", "authorization_witness": support}},
          "thoughtSignature": "call-signature"}]}
     def respond(request):
         requests.append(json.loads(request.content))
@@ -53,6 +53,7 @@ def test_actual_executor_and_native_history(method, decision, tmp_path):
         assert requests[1]["contents"][1] == native  # complete raw parts, not reconstructed calls
         response = requests[1]["contents"][2]["parts"][0]["functionResponse"]
         assert response["name"] == "lookup"
+        assert response["id"] == "native-call"
         text = response["response"]["result"]
         assert ("Reminder: trusted task frames" in text) == (method == "as_only_guard_frame_reminder")
         if method != "as_only":

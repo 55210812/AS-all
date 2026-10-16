@@ -189,6 +189,7 @@ class NativeClient:
         key: str | None = None,
         base_url: str | None = None,
         http_client: httpx.Client | None = None,
+        request_check: Any = None,
         _sleep: Any = time.sleep,
     ) -> None:
         if stage not in ("agent", "defense"):
@@ -208,6 +209,7 @@ class NativeClient:
         self._http = http_client or httpx.Client(timeout=httpx.Timeout(connect=20.0, read=180.0, write=60.0, pool=20.0))
         self._owns_http = http_client is None
         self._sleep = _sleep
+        self._request_check = request_check
         self._thought_signatures: dict[str, str] = {}
         self._native_history: dict[str, dict[str, Any]] = {}
         self.chat = _GeminiChat(self)
@@ -237,6 +239,7 @@ class NativeClient:
         instructions: list[str] = []
         contents: list[dict[str, Any]] = []
         call_names: dict[str, str] = {}
+        native_ids: dict[str, str] = {}
         pending_calls: set[str] = set()
         response_parts: list[dict[str, Any]] | None = None
         for raw_message in messages:
@@ -264,6 +267,8 @@ class NativeClient:
                         }
                     }
                 )
+                if call_id in native_ids:
+                    response_parts[-1]["functionResponse"]["id"] = native_ids[call_id]
                 pending_calls.remove(call_id)
                 continue
             if pending_calls:
@@ -308,6 +313,8 @@ class NativeClient:
                 native_calls = [p["functionCall"] for p in parts if "functionCall" in p]
                 for call, native in zip(message.get("tool_calls") or [], native_calls, strict=True):
                     call_names[call["id"]] = native["name"]
+                    if native.get("id"):
+                        native_ids[call["id"]] = native["id"]
             contents.append({"role": "model" if role == "assistant" else "user", "parts": parts})
         if pending_calls:
             raise ValueError("tool-call turn is missing function responses")
@@ -507,6 +514,8 @@ class NativeClient:
             handle.flush()
 
     def _create(self, kwargs: dict[str, Any]) -> ChatCompletion:
+        if self._request_check is not None:
+            self._request_check()
         request_id = uuid.uuid4().hex
         started = time.monotonic()
         body = self._request(kwargs)
@@ -537,14 +546,24 @@ class NativeClient:
                     self._sleep(0.25 * (2 ** (attempt - 1)))
                     continue
                 if response.status_code == 429 and attempt < 3:
-                    attempts.append({"attempt": attempt, "retry": True, "status_code": 429})
+                    try:
+                        rejected = response.json()
+                    except ValueError:
+                        rejected = {}
+                    attempts.append({"attempt": attempt, "retry": True, "status_code": 429,
+                                     "raw_usage": self._sanitize(rejected.get("usageMetadata"))
+                                     if isinstance(rejected, dict) else None})
                     self._sleep(0.25 * (2 ** (attempt - 1)))
                     continue
                 break
             if response is None:
                 raise RuntimeError("Gemini request ended without a response")
+            attempts.append({"attempt": len(attempts) + 1, "status_code": response.status_code})
+            try:
+                data = response.json()
+            except ValueError:
+                data = None
             response.raise_for_status()
-            data = response.json()
             if not isinstance(data, dict):
                 raise GeminiProtocolError("Gemini native response must be a JSON object")
             completion = self._completion(data)
@@ -554,8 +573,7 @@ class NativeClient:
                     "event": "request_completed",
                     **common,
                     "elapsed_seconds": elapsed,
-                    "transport_attempts": attempts
-                    + [{"attempt": len(attempts) + 1, "status_code": response.status_code}],
+                    "transport_attempts": attempts,
                     "raw_usage": self._sanitize(data.get("usageMetadata")),
                     "response": self._sanitize(data),
                 }

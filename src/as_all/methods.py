@@ -80,6 +80,10 @@ def build(method, case_dir):
     args = dict(key=os.environ["GEMINI_API_KEY"],
                 base_url=os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"),
                 ledger=ledger)
+    run_dir = case_dir.parent.parent
+    if (run_dir / "manifest.json").exists():
+        from as_all.cli import check_request_boundary
+        args["request_check"] = lambda: check_request_boundary(run_dir)
     agent, defense = NativeClient(**args, stage="agent"), NativeClient(**args, stage="defense")
     from agentdojo.agent_pipeline.llms import openai_llm
     if hasattr(openai_llm.chat_completion_request, "__wrapped__"):

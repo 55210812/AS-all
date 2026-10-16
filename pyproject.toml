@@ -1,7 +1,7 @@
 [project]
 name = "as-all"
 version = "0.1.0"
-description = "Portable Gemini AgentDojo eight-method evaluation"
+description = "Portable Gemini AgentDojo eleven-method evaluation"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "agentdojo", "semantic-action-frame-guard", "openai==1.76.2",

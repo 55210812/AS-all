@@ -291,6 +291,25 @@ def _confirm_full_run(*, assume_yes: bool) -> None:
         raise BootstrapError("Full experiment was not confirmed; nothing was started")
 
 
+def _remove_watchdog(root: Path) -> None:
+    listed = _run(["crontab", "-l"], cwd=root, check=False, capture_output=True)
+    if listed.returncode == 1:
+        return
+    if listed.returncode:
+        raise BootstrapError("Cannot read crontab for watchdog retirement")
+    lines = listed.stdout.splitlines()
+    kept = []
+    index = 0
+    while index < len(lines):
+        if lines[index] == f"# {_cron_marker(root)}":
+            index += 2
+        else:
+            kept.append(lines[index])
+            index += 1
+    if kept != lines:
+        subprocess.run(["crontab", "-"], cwd=root, input="\n".join(kept) + "\n", text=True, check=True)
+
+
 def start(
     root: Path,
     *,
@@ -374,6 +393,9 @@ def _run_cli(root: Path, run_dir: Path, *, acceptance: bool) -> int:
         env=env,
         check=False,
     )
+    completion = run_dir / "completion.json"
+    if completion.exists() and json.loads(completion.read_text()).get("all_terminal"):
+        _remove_watchdog(root)
     return result.returncode
 
 

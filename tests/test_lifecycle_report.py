@@ -43,3 +43,26 @@ def test_runtime_error_not_success_and_report_incomplete(tmp_path):
     assert state["terminal"] == 1 and state["runtime_errors"] == 1 and not state["all_terminal"]
     summaries = json.loads((tmp_path / "report/summary.json").read_text())
     assert all(r["normal"] == 0 for r in summaries)
+
+
+def test_retry_usage_not_discarded_and_unknown_separate(tmp_path):
+    path = tmp_path / "requests.jsonl"
+    usage = dict(promptTokenCount=100, candidatesTokenCount=5, totalTokenCount=115)
+    events = [dict(event="request_started", request_id="r1", stage="agent"),
+              dict(event="request_completed", request_id="r1", stage="agent", raw_usage=usage,
+                   transport_attempts=[dict(retry=True, raw_usage=usage),
+                                       dict(retry=True), dict(status_code=200)])]
+    path.write_text("\n".join(json.dumps(e) for e in events))
+    data = cost(path)["agent"]
+    assert data["requests"] == 3
+    assert data["raw_input"] == 200 and data["output"] == 30
+    assert data["missing_usage"] == 1 and data["unknown_cache"] == 2
+
+
+def test_request_boundary_blocks_frozen_changes(tmp_path, monkeypatch):
+    from as_all.cli import check_request_boundary
+    preflight(tmp_path, acceptance=True, download=False)
+    monkeypatch.setattr("as_all.cli.source_hashes", lambda: {})
+    with pytest.raises(RuntimeError, match="FrozenSourceMismatch"):
+        check_request_boundary(tmp_path)
+    assert json.loads((tmp_path / "STOP.json").read_text())["reason"] == "FrozenSourceMismatch"
