@@ -97,6 +97,11 @@ def selected_case_files(case: CaseResult) -> list[Path]:
                 elif path.is_file():
                     files.add(path)
                 else:
+                    # Older manifests declared a semantic directory for every
+                    # method, even those that record only benchmark/HTTP traces.
+                    method = str(case.payload.get("method", ""))
+                    if item == "semantic" and method and method != "holistic" and not method.startswith("as_only"):
+                        continue
                     raise FeedbackError(f"Declared trace file does not exist: {path}")
     return sorted(files)
 

@@ -475,7 +475,7 @@ def start(
     print(f"Experiment: {profile.id} ({profile.model}; {profile.attack})")
     print(f"Workers: {DEFAULT_WORKERS}")
     print(f"Results: {run_dir.resolve()}")
-    print("Status: bash run.sh status")
+    print(f"Status: bash run.sh status --experiment {profile.id}")
     print(f"Attach: tmux attach -t {session}")
     return run_dir.resolve()
 

@@ -88,6 +88,20 @@ def test_declared_trace_cannot_escape_case_directory(tmp_path: Path) -> None:
         build_bundle(run, tmp_path / "bundle")
 
 
+def test_legacy_non_witness_optional_semantic_folder_not_required(tmp_path):
+    run = make_run(tmp_path)
+    add_case(run, "attack-succeeded", utility=True, asr=True)
+    path = run / "cases/attack-succeeded/result.json"
+    payload = json.loads(path.read_text())
+    payload["trace_paths"] = ["trace.json", "semantic"]
+    path.write_text(json.dumps(payload))
+    assert build_bundle(run, tmp_path / "bundle")["case_traces_included"] == 1
+    payload["method"] = "as_only_guard"
+    path.write_text(json.dumps(payload))
+    with pytest.raises(FeedbackError, match="Declared trace"):
+        build_bundle(run, tmp_path / "required-bundle")
+
+
 def test_secret_and_private_path_scan_stops_export(tmp_path: Path) -> None:
     env = tmp_path / ".secrets.env"
     env.write_text("GEMINI_API_KEY=super-secret-value\n", encoding="utf-8")

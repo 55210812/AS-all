@@ -34,7 +34,8 @@ def sha(path):
 def source_hashes():
     hashes = {str(p.relative_to(ROOT)): sha(p) for folder in ("src", "vendor", "reference", "data", "tools")
             for p in sorted((ROOT / folder).rglob("*")) if p.is_file()
-            and "__pycache__" not in p.parts and not p.name.endswith((".pyc", ".egg-info"))}
+            and not {"__pycache__", ".pytest_cache", ".ruff_cache"}.intersection(p.parts)
+            and not p.name.endswith((".pyc", ".egg-info"))}
     for name in ("pyproject.toml", "uv.lock", "run.sh", "feedback.sh", ".python-version"):
         hashes[name] = sha(ROOT / name)
     return hashes
@@ -201,6 +202,8 @@ def worker(case, directory):
         if any(marker in message for marker in ("FrozenSourceMismatch", "ModelIdentityMismatch", "ThinkingChannelMismatch", "DiskBelow1GiB")):
             atomic(directory.parent.parent / "STOP.json", {"reason": type(exc).__name__ + ": " + message})
     result["duration_seconds"] = time.monotonic() - started
+    result["trace_paths"] = [name for name in ("benchmark", "requests.jsonl", "semantic")
+                             if (directory / name).exists()]
     from as_all.report import cost
     result["costs"] = cost(directory / "requests.jsonl")
     result["source_files"] = {str(p.relative_to(directory)): sha(p) for p in directory.rglob("*")

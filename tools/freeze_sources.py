@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     roots = [ROOT / name for name in ("src", "vendor", "reference", "data", "tests", "tools", "docs", ".github")]
     files = sorted(p for root in roots for p in root.rglob("*")
-                   if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc")
+                   if p.is_file() and not {"__pycache__", ".pytest_cache", ".ruff_cache"}.intersection(p.parts)
+                   and p.suffix != ".pyc")
     files += [ROOT / name for name in ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
                                       "pyproject.toml", "uv.lock", "run.sh", "feedback.sh", ".python-version")]
     data = {
