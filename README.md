@@ -1,4 +1,4 @@
-# Gemini十一方法 AgentDojo全量实验
+# Gemini／Qwen十一方法 AgentDojo实验
 
 ## 1. 准备并运行
 
@@ -12,16 +12,29 @@ cd AS-all
 bash run.sh
 ```
 
-首次运行按终端提示填写：
+首次运行先选择实验（回车默认Gemini）：
 
-1. **Gemini API key**：输入密钥，输入时不显示字符。
-2. **Gemini API base**：官方接口直接回车，默认为`https://generativelanguage.googleapis.com/v1beta`；使用代理时填写支持Gemini原生`generateContent`协议的地址。
+| 选项 | 模型 | 攻击 | 每方法 | 总案例 | 案例并行 |
+|---|---|---|---|---:|---:|
+| 1. Gemini | gemini-2.5-flash | important_instructions | 97 Clean＋949 Attack | 11,506 | 8 |
+| 2. Qwen | qwen3.5-flash | tool_knowledge | 97 Clean＋949 Attack | 11,506 | 8 |
+
+一次选择一个实验，不自动启动另一套。也可直接选择Qwen：
+
+```bash
+bash run.sh start --experiment qwen-tool-knowledge
+```
+
+随后按终端提示填写所选模型的配置：
+
+1. **API key**：输入所选模型密钥，输入时不显示字符。
+2. **API base**：Gemini默认`https://generativelanguage.googleapis.com/v1beta`，代理须支持原生`generateContent`；Qwen填写OpenAI兼容API base，通常以`/v1`结尾。
 3. **Hugging Face token**：可选，直接回车跳过。
 4. 安装和预检通过后，输入 **`RUN 11506`**，启动十一方法全量实验。
 
-模型已固定为`gemini-2.5-flash`，无需填写模型名。凭据保存在本机`.secrets.env`，权限为600，已被Git忽略；后续运行复用配置。脚本可能在提示填写密钥前先安装依赖。没有tmux／cron时会提示缺少的系统组件。
+模型名预设，无需填写。两套凭据分别保存在本机`.secrets.env`（GEMINI_API_KEY／GEMINI_BASE_URL与QWEN_API_KEY／QWEN_BASE_URL），权限600并被Git忽略；后续复用，不相互覆盖。脚本可能在提示密钥前安装依赖。没有tmux／cron时会提示缺少组件。
 
-启动前显示11,506例付费提示，输入`RUN 11506`才开始。默认同时运行4个案例，已终止或部分执行的案例不会自动重跑。
+启动前显示所选模型、攻击、11,506例付费提示，输入`RUN 11506`才开始。十一方法共享8个案例worker，每个子进程只运行一个案例；不是每方法各8个。已终止或部分执行案例不会自动重跑，已有运行的冻结配置不改写。
 
 启动成功后任务在tmux后台运行，可以关闭终端。脚本会打印结果的绝对路径和状态查询命令。
 
@@ -29,16 +42,19 @@ bash run.sh
 
 No Defense、Tool Filtering、Prompt Repetition、Input Delimiting、Injection Detection、IPIGuard、Task Shield、Standard Holistic、AS-only、AS-only＋Guard、AS-only＋Guard＋Frame提醒。
 
-每种方法运行Slack、Travel、Workspace、Banking四个领域的1046例：97 Clean＋949 important_instructions Attack。所有方法使用一致的基准任务与攻击输入，领域工具操作随包提供的模拟环境。
+每种方法运行Slack、Travel、Workspace、Banking四个领域的1046例。各实验内十一方法使用一致任务和冻结攻击；Gemini与Qwen攻击分开，不混合统计。工具只操作随包提供的模拟环境。
+
+Gemini AS-only三方法保持A版：领域工具注册到`functionDeclarations`，工具参数附`authorization_witness`，system不重复列工具注册表。Qwen保持原代理格式：system保留`available_domain_tools`，统一代理提交领域调用与Witness；两种Guard采用已确认的via强化提示词。Qwen不转换成Gemini A版。
 
 Agent开启动态Thinking，防御生成请求关闭Thinking。各方法的实现与配置见[方法说明](docs/METHODS.md)。
 
 ## 2. 查看进度和结果
 
-启动时打印绝对路径：`results/<run_id>/`。所有方法统一放在该目录。
+启动时打印绝对路径：`results/<experiment_id>/<run_id>/`。同一次运行的十一方法统一放在该目录，两套实验分开。
 
 ```bash
 bash run.sh status
+bash run.sh status --experiment qwen-tool-knowledge
 ```
 
 - `report/summary.md`、`summary.csv`、`summary.json`：Clean／Attack总表。
@@ -56,14 +72,15 @@ bash run.sh status
 
 ```bash
 bash feedback.sh
+bash feedback.sh --experiment qwen-tool-knowledge
 ```
 
-默认选择最新的结果目录。输入`PUBLIC`确认公开上传；若尚未登录GitHub，按终端提示在浏览器完成登录。上传完成后脚本打印反馈PR链接，将结果回传到本仓库。
+默认选择Gemini最新运行；Qwen用上面的`--experiment`选择。输入`PUBLIC`确认公开上传；未登录时按提示完成GitHub浏览器登录。上传后打印反馈PR链接。
 
 若存在多次实验，也可明确指定要反馈的目录：
 
 ```bash
-bash feedback.sh results/<run_id>
+bash feedback.sh results/qwen-tool-knowledge/<run_id>
 ```
 
 显式确认`PUBLIC`后，上传汇总、来源SHA、运行错误，以及Utility失败或ASR成功案例的完整轨迹。脚本先扫描配置密钥、认证信息和私有路径；发现疑似泄漏则停止，不篡改原轨迹。使用GitHub浏览器登录／现有gh认证，有写权限建反馈分支，否则fork后提交PR；不会直接写main。大压缩包使用分卷附件及SHA。
@@ -71,3 +88,11 @@ bash feedback.sh results/<run_id>
 反馈PR和附件是公开的。只在你主动执行反馈脚本时上传；密钥、历史结果、模型权重和本机配置不进入主分支。反馈PR用于取回结果，不自动合并结果数据。
 
 方法来源和改动见[方法说明](docs/METHODS.md)、[IPIGuard对齐](docs/IPIGUARD_ALIGNMENT.md)和[第三方许可证](THIRD_PARTY_NOTICES.md)。
+
+## 小范围验收与已有环境
+
+```bash
+bash run.sh start --experiment qwen-tool-knowledge --acceptance
+```
+
+固定每方法Slack user_task_0 Clean及injection_task_1，共22例，不自动接续全量，不按指标取优。已有Python3.12环境可通过`AS_ALL_PYTHON=/absolute/path/to/python`复用依赖；启动器仍检查依赖、固定检测器文件和8并行资源容量，不降低并行或跳过方法。检测器按每副本2GiB、共16GiB空闲内存／显存作保守预检，此值不是实测峰值。

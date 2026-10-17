@@ -45,7 +45,9 @@ class AClient(NativeClient):
         return result
 
 
-def build(method, case_dir, defense_client, client_args):
+def build(method, case_dir, defense_client, client_args, *, model=MODEL, client_factory=None,
+          variant_reference="native_a"):
+    client_factory = client_factory or AClient
     from agentdojo.agent_pipeline import semantic_frame_alignment_agent_witness_no_guard as base
     from agentdojo.agent_pipeline.agent_pipeline import AgentPipeline, load_system_message
     from agentdojo.agent_pipeline.basic_elements import SystemMessage, InitQuery
@@ -54,7 +56,7 @@ def build(method, case_dir, defense_client, client_args):
     from semantic_action_frame_guard import TraceRecorder
 
     base.chat_completion_request = openai_llm.chat_completion_request
-    variants = load_module("ablation_variants", ROOT / "reference/native_a/ablation_variants.py")
+    variants = load_module("ablation_variants", ROOT / "reference" / variant_reference / "ablation_variants.py")
     frames = json.loads((ROOT / "data/manual_frames97.json").read_text())
     case = json.loads((case_dir / "case.json").read_text())
     active = f"{case['domain']}/{case['task']}"
@@ -95,7 +97,7 @@ def build(method, case_dir, defense_client, client_args):
     else:
         executor = variants.VariantGuardExecutor.__new__(variants.VariantGuardExecutor)
         initialize(executor, variants.guarded.tool_result_to_str)
-        transport = variants.guarded.AuditedGuardTransport(MODEL, client=defense_client,
+        transport = variants.guarded.AuditedGuardTransport(model, client=defense_client,
                      enable_thinking=False, recorder=executor.context.recorder)
         executor.guard = variants.VariantGuard(transport, executor.context.recorder, False)
         if method == "as_only_guard_frame_reminder":
@@ -106,10 +108,10 @@ def build(method, case_dir, defense_client, client_args):
                 event["block_task_reminder"] = {"content": content, "frame_ids": [f["id"] for f in frozen]}
                 return content
             executor._block_task_reminder = reminder
-    llm = variants.VariantLLM(AClient(**client_args, stage="agent"), MODEL, temperature=0,
+    llm = variants.VariantLLM(client_factory(**client_args, stage="agent"), model, temperature=0,
         witness_context=executor.context, explicit_cache=False, redact_completed_witnesses=False,
         joint_parameter_grounding=True)
     pipeline = AgentPipeline([SystemMessage(load_system_message()), InitQuery(), llm,
                               ToolsExecutionLoop([executor, llm], max_iters=18)])
-    pipeline.name = MODEL
+    pipeline.name = model
     return pipeline

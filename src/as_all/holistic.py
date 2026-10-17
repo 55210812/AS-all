@@ -97,15 +97,15 @@ class HolisticExecutor(base.AgentWitnessNoGuardToolsExecutor):
         return validated
 
 
-def build(client, system, case_dir):
+def build(client, system, case_dir, model="gemini-2.5-flash"):
     # Each spawned child owns exactly one case, so these hooks cannot cross methods/cases.
     base._augment_messages, base._proxy_function = augment, proxy
     base._frames_with_inline_refs = lambda task: ([], set())
     executor = HolisticExecutor(case_dir)
-    llm = base.NoGuardWitnessOpenAILLM(client, "gemini-2.5-flash", temperature=0,
+    llm = base.NoGuardWitnessOpenAILLM(client, model, temperature=0,
                                       witness_context=executor.context, explicit_cache=False,
                                       redact_completed_witnesses=False)
     result = AgentPipeline([SystemMessage(system), InitQuery(), llm,
                             ToolsExecutionLoop([executor, llm], max_iters=18)])
-    result.name = "gemini-2.5-flash"
+    result.name = model
     return result

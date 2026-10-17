@@ -180,6 +180,9 @@ class NativeClient:
     ``stage`` is mandatory because it determines the sole thinking policy:
     adaptive thinking for the agent and disabled thinking for defenses.
     """
+    model = MODEL
+    provider = "gemini"
+    usage_field = "usageMetadata"
 
     def __init__(
         self,
@@ -232,6 +235,9 @@ class NativeClient:
     def close(self) -> None:
         if self._owns_http:
             self._http.close()
+
+    def _headers(self):
+        return {"x-goog-api-key": self._key, "Content-Type": "application/json"}
 
     def __enter__(self) -> Self:
         return self
@@ -527,7 +533,8 @@ class NativeClient:
         common = {
             "request_id": request_id,
             "stage": self.stage,
-            "model": MODEL,
+            "model": self.model,
+            "provider": self.provider,
             "thinking_budget": self._thinking_budget,
             "full_request": safe_request,
         }
@@ -537,10 +544,12 @@ class NativeClient:
         try:
             response: httpx.Response | None = None
             for attempt in range(1, 4):
+                if self._request_check is not None:
+                    self._request_check()
                 try:
                     response = self._http.post(
                         self._url,
-                        headers={"x-goog-api-key": self._key, "Content-Type": "application/json"},
+                        headers=self._headers(),
                         json=body,
                     )
                 except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
@@ -555,7 +564,7 @@ class NativeClient:
                     except ValueError:
                         rejected = {}
                     attempts.append({"attempt": attempt, "retry": True, "status_code": 429,
-                                     "raw_usage": self._sanitize(rejected.get("usageMetadata"))
+                                     "raw_usage": self._sanitize(rejected.get(self.usage_field))
                                      if isinstance(rejected, dict) else None})
                     self._sleep(0.25 * (2 ** (attempt - 1)))
                     continue
@@ -578,7 +587,7 @@ class NativeClient:
                     **common,
                     "elapsed_seconds": elapsed,
                     "transport_attempts": attempts,
-                    "raw_usage": self._sanitize(data.get("usageMetadata")),
+                    "raw_usage": self._sanitize(data.get(self.usage_field)),
                     "response": self._sanitize(data),
                 }
             )
@@ -590,7 +599,7 @@ class NativeClient:
                     **common,
                     "elapsed_seconds": time.monotonic() - started,
                     "transport_attempts": attempts,
-                    "raw_usage": self._sanitize(data.get("usageMetadata")) if isinstance(data, dict) else None,
+                    "raw_usage": self._sanitize(data.get(self.usage_field)) if isinstance(data, dict) else None,
                     "response": self._sanitize(data),
                     "error": {"type": type(exc).__name__, "message": self._sanitize(str(exc))},
                 }

@@ -10,6 +10,8 @@ from as_all.feedback import (
     FeedbackError,
     build_bundle,
     load_configured_secrets,
+    parse_args,
+    resolve_run,
     scan_for_leaks,
     shard_file,
 )
@@ -122,6 +124,51 @@ def test_model_and_benchmark_password_are_not_api_credentials(tmp_path):
     trace = tmp_path / "trace.json"
     trace.write_text('{"model":"gemini-2.5-flash","benchmark_password":"new_password"}')
     assert scan_for_leaks([trace], configured) == []
+
+
+def test_qwen_api_key_is_loaded_as_a_configured_secret(tmp_path: Path) -> None:
+    env = tmp_path / ".secrets.env"
+    env.write_text("QWEN_API_KEY=qwen-private-key-value\n", encoding="utf-8")
+    assert load_configured_secrets([env]) == ["qwen-private-key-value"]
+
+
+def test_resolve_run_selects_only_requested_experiment(tmp_path: Path) -> None:
+    results = tmp_path / "results"
+    gemini = results / "gemini-important" / "run-g"
+    qwen = results / "qwen-tool-knowledge" / "run-q"
+    write_json(gemini / "manifest.json", {"experiment_id": "gemini-important"})
+    write_json(qwen / "manifest.json", {"experiment_id": "qwen-tool-knowledge"})
+
+    assert resolve_run(tmp_path, "gemini-important") == gemini
+    assert resolve_run(tmp_path, "qwen-tool-knowledge") == qwen
+    with pytest.raises(FeedbackError, match="belongs to experiment"):
+        resolve_run(tmp_path, "gemini-important", qwen)
+
+
+def test_resolve_run_uses_legacy_only_for_gemini(tmp_path: Path) -> None:
+    legacy = tmp_path / "results" / "legacy-run"
+    write_json(legacy / "manifest.json", {"model": "gemini-2.5-flash"})
+
+    assert resolve_run(tmp_path, "gemini-important") == legacy
+    with pytest.raises(FeedbackError, match="Missing results directory"):
+        resolve_run(tmp_path, "qwen-tool-knowledge")
+
+
+def test_feedback_explicit_path_can_infer_profile_but_flags_remain_available() -> None:
+    inferred = parse_args(["--run-dir", "results/qwen-tool-knowledge/run-q"])
+    selected = parse_args(["--experiment", "qwen-tool-knowledge"])
+    assert inferred.experiment is None
+    assert selected.experiment == "qwen-tool-knowledge"
+
+
+def test_feedback_bundle_records_canonical_experiment_id(tmp_path: Path) -> None:
+    run = make_run(tmp_path)
+    write_json(run / "manifest.json", {"experiment_id": "qwen-tool-knowledge"})
+    add_case(run, "failed", utility=False, asr=False)
+
+    manifest = build_bundle(run, tmp_path / "bundle-canonical")
+
+    assert manifest["experiment_id"] == "qwen-tool-knowledge"
 
 
 def test_archive_contains_manifest(tmp_path: Path) -> None:

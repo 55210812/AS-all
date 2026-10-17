@@ -12,3 +12,6 @@ __pycache__/
 *.egg-info/
 dist/
 .DS_Store
+task_plan.md
+findings.md
+progress.md

@@ -6,6 +6,7 @@ from agentdojo.agent_pipeline.agent_pipeline import AgentPipeline, TOOL_FILTER_P
 from agentdojo.agent_pipeline.basic_elements import InitQuery, SystemMessage
 from agentdojo.agent_pipeline.llms.openai_llm import OpenAILLM
 from agentdojo.agent_pipeline.tool_execution import ToolsExecutionLoop, ToolsExecutor, tool_result_to_str
+from as_all.experiments import DEFAULT_EXPERIMENT, get_experiment
 
 ROOT = Path(__file__).resolve().parents[2]
 METHODS = ("no_defense", "tool_filter", "repeat_user_prompt", "spotlighting_with_delimiting",
@@ -62,7 +63,31 @@ def detector_path():
                              allow_patterns=list(DETECTOR_FILES))
 
 
-def compose(method, llm, system, defense_client=None, case_dir=None):
+def detector_capacity():
+    """Conservative preflight for eight independent detector replicas; never reduce workers."""
+    import torch
+    from as_all.experiments import WORKERS
+    required = WORKERS * 2 * 1024**3
+    if torch.cuda.is_available():
+        free, _ = torch.cuda.mem_get_info()
+        device = "cuda:" + str(torch.cuda.current_device())
+    else:
+        meminfo = Path("/proc/meminfo")
+        if not meminfo.exists():
+            raise RuntimeError("Detector capacity preflight requires Linux /proc/meminfo")
+        free = int(next(line.split()[1] for line in meminfo.read_text().splitlines()
+                        if line.startswith("MemAvailable:"))) * 1024
+        device = "cpu"
+    result = {"device": device, "free_bytes": free, "case_workers": WORKERS,
+              "estimated_bytes_per_replica": 2 * 1024**3, "required_free_bytes": required,
+              "estimate": "conservative readiness check, not measured peak memory"}
+    if free < required:
+        raise RuntimeError(f"DetectorCapacityInsufficient: {device} needs estimated16GiB free for8 replicas; "
+                           "select a sufficient device explicitly; workers were not reduced")
+    return result
+
+
+def compose(method, llm, system, defense_client=None, case_dir=None, model=MODEL):
     if method not in METHODS:
         raise ValueError(f"Unknown method: {method}")
     defense_client = defense_client or llm.client
@@ -74,7 +99,7 @@ def compose(method, llm, system, defense_client=None, case_dir=None):
         from agentdojo.agent_pipeline.llms.openai_llm import _record_token_usage
         # Share the agent's counter schema; the frozen filter uses different keys.
         source._record_token_usage = lambda extra_args, completion: _record_token_usage(completion, extra_args)
-        first = [sys, init, source.OpenAILLMToolFilter(TOOL_FILTER_PROMPT, defense_client, MODEL), llm]
+        first = [sys, init, source.OpenAILLMToolFilter(TOOL_FILTER_PROMPT, defense_client, model), llm]
     elif method == "repeat_user_prompt":
         loop = [executor, InitQuery(), llm]
     elif method == "spotlighting_with_delimiting":
@@ -90,43 +115,49 @@ def compose(method, llm, system, defense_client=None, case_dir=None):
         loop = [executor, detector, llm]
     elif method == "task_shield_guard":
         from agentdojo.agent_pipeline.task_shield_defense import TaskShieldGuard, TaskShieldJudge, TaskShieldToolsExecutor
-        guard = TaskShieldGuard(TaskShieldJudge(defense_client, MODEL, temperature=0))
+        guard = TaskShieldGuard(TaskShieldJudge(defense_client, model, temperature=0))
         first, loop, tail = [sys, init, guard, llm], [TaskShieldToolsExecutor(guard, tool_result_to_str), guard, llm], [guard]
     elif method == "ipiguard_official":
         from agentdojo.agent_pipeline.ipiguard_aligned import (
             OfficialIPIGuardConstructLLM, OfficialIPIGuardTraverseLLM, OfficialIPIGuardDagExecutor)
-        construct = OfficialIPIGuardConstructLLM(defense_client, MODEL, temperature=0)
-        traverse = OfficialIPIGuardTraverseLLM(defense_client, MODEL, temperature=0)
+        construct = OfficialIPIGuardConstructLLM(defense_client, model, temperature=0)
+        traverse = OfficialIPIGuardTraverseLLM(defense_client, model, temperature=0)
         pipeline = AgentPipeline([sys, init, construct, OfficialIPIGuardDagExecutor(traverse, tool_result_to_str)])
-        pipeline.name = MODEL
+        pipeline.name = model
         return pipeline
     elif method == "holistic":
         from as_all.holistic import build
-        return build(llm.client, system, case_dir)
+        return build(llm.client, system, case_dir, model)
     pipeline = AgentPipeline([*first, ToolsExecutionLoop(loop, max_iters=18), *tail])
-    pipeline.name = MODEL
+    pipeline.name = model
     return pipeline
 
 
-def build(method, case_dir):
+def build(method, case_dir, experiment=DEFAULT_EXPERIMENT):
     import os
     from as_all.transport import NativeClient
+    from as_all.qwen_transport import QwenClient
     from agentdojo.agent_pipeline.agent_pipeline import load_system_message
     ledger = case_dir / "requests.jsonl"
-    args = dict(key=os.environ["GEMINI_API_KEY"],
-                base_url=os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"),
+    profile = get_experiment(experiment)
+    client = NativeClient if profile.provider == "gemini" else QwenClient
+    args = dict(key=os.environ[profile.key_env],
+                base_url=os.environ.get(profile.base_env, profile.default_base),
                 ledger=ledger)
     run_dir = case_dir.parent.parent
     if (run_dir / "manifest.json").exists():
         from as_all.cli import check_request_boundary
         args["request_check"] = lambda: check_request_boundary(run_dir)
-    agent, defense = NativeClient(**args, stage="agent"), NativeClient(**args, stage="defense")
+    agent, defense = client(**args, stage="agent"), client(**args, stage="defense")
     from agentdojo.agent_pipeline.llms import openai_llm
     if hasattr(openai_llm.chat_completion_request, "__wrapped__"):
         openai_llm.chat_completion_request = openai_llm.chat_completion_request.__wrapped__
     if method.startswith("as_only"):
         from as_all.native_a import build as build_a
-        return build_a(method, case_dir, defense, args)
+        if profile.provider == "gemini":
+            return build_a(method, case_dir, defense, args)
+        return build_a(method, case_dir, defense, args, model=profile.model,
+                       client_factory=QwenClient, variant_reference="qwen_via")
     # The official-aligned serializer/parser is isolated to IPIGuard; other methods retain their source.
     llm_class = OpenAILLM
     if method == "ipiguard_official":
@@ -134,5 +165,5 @@ def build(method, case_dir):
         if hasattr(source.chat_completion_request, "__wrapped__"):
             source.chat_completion_request = source.chat_completion_request.__wrapped__
         llm_class = source.OpenAILLM
-    llm = llm_class(agent, MODEL, temperature=0)
-    return compose(method, llm, load_system_message(), defense, case_dir)
+    llm = llm_class(agent, profile.model, temperature=0)
+    return compose(method, llm, load_system_message(), defense, case_dir, profile.model)

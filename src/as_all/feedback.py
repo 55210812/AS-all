@@ -21,6 +21,7 @@ UPSTREAM_REPOSITORY = "55210812/AS-all"
 MAX_RELEASE_PART_BYTES = 45 * 1024 * 1024
 MAX_BRANCH_ARCHIVE_BYTES = 10 * 1024 * 1024
 REPORT_PREFIXES = ("summary", "source_hash", "runtime_error")
+EXPERIMENTS = ("gemini-important", "qwen-tool-knowledge")
 
 
 class FeedbackError(RuntimeError):
@@ -191,9 +192,18 @@ def build_bundle(run_dir: Path, destination: Path) -> dict[str, object]:
     destination.mkdir(parents=True)
     copied = [_copy_with_relative_base(path, run_dir, destination) for path in source_files]
 
+    run_manifest_path = run_dir / "manifest.json"
+    run_manifest = (
+        json.loads(run_manifest_path.read_text(encoding="utf-8"))
+        if run_manifest_path.is_file()
+        else {}
+    )
     manifest: dict[str, object] = {
         "schema_version": 1,
         "run_id": run_dir.name,
+        "experiment_id": run_manifest.get(
+            "experiment_id", run_manifest.get("experiment", "gemini-important")
+        ),
         "generated_at": datetime.now(UTC).isoformat(),
         "case_results_total": len(all_results),
         "case_traces_included": len(selected),
@@ -395,15 +405,79 @@ def publish_bundle(repo_root: Path, run_dir: Path, bundle_dir: Path, archive: Pa
 
 
 def newest_run(results_dir: Path) -> Path:
+    if not results_dir.is_dir():
+        raise FeedbackError(f"Missing results directory: {results_dir}")
     candidates = [path for path in results_dir.iterdir() if path.is_dir()]
     if not candidates:
         raise FeedbackError(f"No run directories found below {results_dir}")
     return max(candidates, key=lambda path: path.stat().st_mtime)
 
 
+def _manifest_experiment(run_dir: Path) -> str | None:
+    path = run_dir / "manifest.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise FeedbackError(f"Invalid run manifest {path}: {exc}") from exc
+    value = payload.get("experiment_id", payload.get("experiment"))
+    return value if isinstance(value, str) else None
+
+
+def resolve_run(repo_root: Path, experiment: str, run_dir: Path | None = None) -> Path:
+    results = (repo_root / "results").resolve()
+    if run_dir is not None:
+        selected = run_dir.resolve()
+    else:
+        profile_results = results / experiment
+        try:
+            selected = newest_run(profile_results)
+        except FeedbackError:
+            if experiment != "gemini-important":
+                raise
+            legacy = (
+                [
+                    path
+                    for path in results.iterdir()
+                    if path.is_dir()
+                    and path.name not in EXPERIMENTS
+                    and _manifest_experiment(path) in (None, "gemini-important")
+                ]
+                if results.is_dir()
+                else []
+            )
+            if not legacy:
+                raise FeedbackError(
+                    f"No run directories found for experiment {experiment}"
+                )
+            selected = max(legacy, key=lambda path: path.stat().st_mtime)
+    try:
+        selected.relative_to(results)
+    except ValueError as exc:
+        raise FeedbackError(
+            "Run directory must be inside this repository's results directory"
+        ) from exc
+    actual = _manifest_experiment(selected)
+    if actual is not None and actual != experiment:
+        raise FeedbackError(
+            f"Run directory belongs to experiment {actual}, not {experiment}"
+        )
+    return selected
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-dir", type=Path, help="results/<run_id>; defaults to newest run")
+    parser.add_argument(
+        "--experiment",
+        choices=EXPERIMENTS,
+        help="select the experiment profile whose newest run is exported",
+    )
+    parser.add_argument(
+        "--run-dir",
+        type=Path,
+        help="explicit results/<experiment>/<run_id> (legacy Gemini paths also supported)",
+    )
     parser.add_argument(
         "--confirm-public-upload",
         action="store_true",
@@ -415,11 +489,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     repo_root = Path(__file__).resolve().parents[2]
-    run_dir = args.run_dir.resolve() if args.run_dir else newest_run(repo_root / "results").resolve()
-    try:
-        run_dir.relative_to((repo_root / "results").resolve())
-    except ValueError as exc:
-        raise FeedbackError("Run directory must be inside this repository's results directory") from exc
+    experiment = args.experiment
+    if experiment is None and args.run_dir is not None:
+        experiment = _manifest_experiment(args.run_dir.resolve())
+    experiment = experiment or "gemini-important"
+    run_dir = resolve_run(repo_root, experiment, args.run_dir)
     if not args.confirm_public_upload:
         raise FeedbackError("Public upload was not confirmed; nothing was uploaded")
 

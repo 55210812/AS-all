@@ -15,12 +15,11 @@ import sys
 from datetime import datetime, timezone
 from typing import Mapping, Sequence
 
+from .experiments import DEFAULT_EXPERIMENT, WORKERS, Experiment, get_experiment
 
-MODEL = "gemini-2.5-flash"
-DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 TOTAL_CASES = 11_506
 METHODS = 11
-DEFAULT_WORKERS = 4
+DEFAULT_WORKERS = WORKERS
 
 
 class BootstrapError(RuntimeError):
@@ -83,52 +82,84 @@ def _write_secrets(path: Path, values: Mapping[str, str]) -> None:
         os.close(fd)
 
 
-def configure_secrets(root: Path, *, non_interactive: bool = False) -> Path:
+def _model_env(profile: Experiment) -> str:
+    return f"{profile.provider.upper()}_MODEL"
+
+
+def configure_secrets(
+    root: Path,
+    *,
+    experiment: str = DEFAULT_EXPERIMENT,
+    non_interactive: bool = False,
+) -> Path:
+    profile = get_experiment(experiment)
     path = root / ".secrets.env"
     current = _parse_env_file(path)
-    api_key = current.get("GEMINI_API_KEY", "")
-    base_url = current.get("GEMINI_BASE_URL", DEFAULT_BASE_URL)
+    api_key = current.get(profile.key_env, "")
+    base_url = current.get(profile.base_env, profile.default_base)
     hf_token = current.get("HF_TOKEN", "")
 
-    if not api_key:
+    if not api_key or not base_url:
         if non_interactive:
-            raise BootstrapError("GEMINI_API_KEY is missing from .secrets.env")
-        api_key = getpass.getpass("Gemini API key (hidden): ").strip()
+            missing = profile.key_env if not api_key else profile.base_env
+            raise BootstrapError(f"{missing} is missing from .secrets.env")
+        label = "Gemini" if profile.provider == "gemini" else "Qwen"
         if not api_key:
-            raise BootstrapError("Gemini API key cannot be empty")
-        entered_base = input(f"Gemini API base [{DEFAULT_BASE_URL}]: ").strip()
-        base_url = entered_base or DEFAULT_BASE_URL
-        hf_token = getpass.getpass(
-            "Hugging Face token (optional, hidden; press Enter to skip): "
-        ).strip()
+            api_key = getpass.getpass(f"{label} API key (hidden): ").strip()
+            if not api_key:
+                raise BootstrapError(f"{label} API key cannot be empty")
+        if not base_url:
+            base_url = input(f"{label} API base (required): ").strip()
+            if not base_url:
+                raise BootstrapError(f"{label} API base cannot be empty")
+        elif profile.default_base:
+            entered_base = input(f"{label} API base [{profile.default_base}]: ").strip()
+            base_url = entered_base or profile.default_base
+        if not hf_token:
+            hf_token = getpass.getpass(
+                "Hugging Face token (optional, hidden; press Enter to skip): "
+            ).strip()
 
+    merged = dict(current)
+    merged.update(
+        {
+            profile.key_env: api_key,
+            profile.base_env: base_url,
+            _model_env(profile): profile.model,
+        }
+    )
+    if hf_token:
+        merged["HF_TOKEN"] = hf_token
     _write_secrets(
         path,
-        {
-            "GEMINI_API_KEY": api_key,
-            "GEMINI_BASE_URL": base_url,
-            "GEMINI_MODEL": MODEL,
-            **({"HF_TOKEN": hf_token} if hf_token else {}),
-        },
+        merged,
     )
     return path
 
 
-def runtime_env(root: Path) -> dict[str, str]:
+def runtime_env(
+    root: Path, *, experiment: str = DEFAULT_EXPERIMENT
+) -> dict[str, str]:
+    profile = get_experiment(experiment)
     env = dict(os.environ)
     env.update(_parse_env_file(root / ".secrets.env"))
-    env["GEMINI_MODEL"] = MODEL
+    env[_model_env(profile)] = profile.model
+    env["AS_ALL_EXPERIMENT"] = profile.id
     env["AS_ALL_WORKERS"] = str(DEFAULT_WORKERS)
     return env
 
 
-def _active_path(root: Path) -> Path:
-    return root / ".state" / "active_run.json"
+def _active_path(
+    root: Path, experiment: str = DEFAULT_EXPERIMENT, *, legacy: bool = False
+) -> Path:
+    name = "active_run.json" if legacy else f"active_run.{experiment}.json"
+    return root / ".state" / name
 
 
-def _session_name(root: Path) -> str:
-    digest = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:10]
-    return f"as-all-{digest}"
+def _session_name(root: Path, experiment: str = DEFAULT_EXPERIMENT) -> str:
+    identity = f"{root.resolve()}\0{experiment}"
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:10]
+    return f"as-all-{experiment}-{digest}"
 
 
 def _tmux_running(root: Path, session: str) -> bool:
@@ -141,8 +172,15 @@ def _tmux_running(root: Path, session: str) -> bool:
     return result.returncode == 0
 
 
-def _read_active(root: Path) -> dict[str, str] | None:
-    path = _active_path(root)
+def _read_active(
+    root: Path,
+    experiment: str = DEFAULT_EXPERIMENT,
+    *,
+    include_legacy: bool = False,
+) -> dict[str, str] | None:
+    path = _active_path(root, experiment)
+    if not path.exists() and include_legacy and experiment == DEFAULT_EXPERIMENT:
+        path = _active_path(root, legacy=True)
     if not path.exists():
         return None
     try:
@@ -154,31 +192,49 @@ def _read_active(root: Path) -> dict[str, str] | None:
     return data
 
 
-def _write_active(root: Path, *, run_dir: Path, session: str, mode: str) -> None:
-    path = _active_path(root)
+def _write_active(
+    root: Path,
+    *,
+    run_dir: Path,
+    session: str,
+    mode: str,
+    experiment: str = DEFAULT_EXPERIMENT,
+) -> None:
+    profile = get_experiment(experiment)
+    path = _active_path(root, experiment)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "run_dir": str(run_dir.resolve()),
         "session": session,
         "mode": mode,
-        "model": MODEL,
+        "experiment": profile.id,
+        "model": profile.model,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def _new_run_dir(root: Path, *, mode: str) -> Path:
+def _new_run_dir(
+    root: Path, *, mode: str, experiment: str = DEFAULT_EXPERIMENT
+) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    candidate = root / "results" / f"{mode}-{stamp}"
+    base = root / "results" / experiment
+    candidate = base / f"{mode}-{stamp}"
     counter = 1
     while candidate.exists():
-        candidate = root / "results" / f"{mode}-{stamp}-{counter}"
+        candidate = base / f"{mode}-{stamp}-{counter}"
         counter += 1
     candidate.mkdir(parents=True)
     return candidate.resolve()
 
 
-def _cli_args(command: str, run_dir: Path, *, acceptance: bool = False) -> list[str]:
+def _cli_args(
+    command: str,
+    run_dir: Path,
+    *,
+    acceptance: bool = False,
+    experiment: str = DEFAULT_EXPERIMENT,
+) -> list[str]:
     args = [
         "uv",
         "run",
@@ -191,8 +247,12 @@ def _cli_args(command: str, run_dir: Path, *, acceptance: bool = False) -> list[
         command,
     ]
     args.extend(["--run-dir", str(run_dir.resolve())])
+    args.extend(["--experiment", experiment])
     if os.environ.get("AS_ALL_PYTHON"):
-        args = [os.environ["AS_ALL_PYTHON"], "-m", "as_all.cli", command, "--run-dir", str(run_dir.resolve())]
+        args = [
+            os.environ["AS_ALL_PYTHON"], "-m", "as_all.cli", command,
+            "--run-dir", str(run_dir.resolve()), "--experiment", experiment,
+        ]
     if acceptance:
         args.append("--acceptance")
     return args
@@ -206,12 +266,18 @@ def _sync(root: Path) -> None:
     _run(["uv", "sync", "--frozen", "--python", "3.12"], cwd=root)
 
 
-def _cron_marker(root: Path) -> str:
-    digest = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:12]
+def _cron_marker(root: Path, experiment: str = DEFAULT_EXPERIMENT) -> str:
+    identity = f"{root.resolve()}\0{experiment}"
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
     return f"AS_ALL_READONLY_WATCHDOG_{digest}"
 
 
-def _tmux_shell_command(run_dir: Path, *, acceptance: bool) -> str:
+def _tmux_shell_command(
+    run_dir: Path,
+    *,
+    acceptance: bool,
+    experiment: str = DEFAULT_EXPERIMENT,
+) -> str:
     args = [
         "uv",
         "run",
@@ -224,11 +290,16 @@ def _tmux_shell_command(run_dir: Path, *, acceptance: bool) -> str:
         "_run-cli",
         "--run-dir",
         str(run_dir.resolve()),
+        "--experiment",
+        experiment,
     ]
     if acceptance:
         args.append("--acceptance")
     if os.environ.get("AS_ALL_PYTHON"):
-        args = [os.environ["AS_ALL_PYTHON"], "-m", "as_all.bootstrap", "_run-cli", "--run-dir", str(run_dir.resolve())]
+        args = [
+            os.environ["AS_ALL_PYTHON"], "-m", "as_all.bootstrap", "_run-cli",
+            "--run-dir", str(run_dir.resolve()), "--experiment", experiment,
+        ]
         if acceptance:
             args.append("--acceptance")
         return " ".join([f"AS_ALL_PYTHON={shlex.quote(os.environ['AS_ALL_PYTHON'])}",
@@ -236,16 +307,18 @@ def _tmux_shell_command(run_dir: Path, *, acceptance: bool) -> str:
     return shlex.join(args) + " > " + shlex.quote(str(run_dir / "run.log")) + " 2>&1"
 
 
-def _install_crontab(root: Path, run_dir: Path) -> None:
+def _install_crontab(
+    root: Path, run_dir: Path, experiment: str = DEFAULT_EXPERIMENT
+) -> None:
     """Install cron using stdin; split out for deterministic tests."""
-    marker = _cron_marker(root)
+    marker = _cron_marker(root, experiment)
     listed = _run(["crontab", "-l"], cwd=root, check=False, capture_output=True)
     if listed.returncode not in (0, 1):
         raise BootstrapError(f"Cannot read the current crontab: {listed.stderr.strip()}")
     existing = listed.stdout if listed.returncode == 0 else ""
     state_dir = root / ".state"
     state_dir.mkdir(parents=True, exist_ok=True)
-    backup = state_dir / "crontab.before-watchdog.txt"
+    backup = state_dir / f"crontab.before-watchdog.{experiment}.txt"
     if not backup.exists():
         backup.write_text(existing, encoding="utf-8")
 
@@ -265,7 +338,7 @@ def _install_crontab(root: Path, run_dir: Path) -> None:
     environment = ""
     if os.environ.get("AS_ALL_PYTHON"):
         environment = f"AS_ALL_PYTHON={shlex.quote(os.environ['AS_ALL_PYTHON'])} PYTHONPATH={shlex.quote(os.environ.get('PYTHONPATH', ''))} "
-    command = _cli_args("watchdog", run_dir)
+    command = _cli_args("watchdog", run_dir, experiment=experiment)
     if not os.environ.get("AS_ALL_PYTHON"):
         command[0] = uv
     shell_command = f"cd {shlex.quote(str(root.resolve()))} && {environment}{shlex.join(command)}"
@@ -280,19 +353,23 @@ def _install_crontab(root: Path, run_dir: Path) -> None:
     )
 
 
-def _confirm_full_run(*, assume_yes: bool) -> None:
+def _confirm_full_run(
+    *, assume_yes: bool, experiment: str = DEFAULT_EXPERIMENT
+) -> None:
     if assume_yes:
         return
+    profile = get_experiment(experiment)
     print(
-        f"This will run {TOTAL_CASES:,} paid Gemini cases "
-        f"({METHODS} methods; 97 Clean + 949 Attack per method)."
+        f"This will run {TOTAL_CASES:,} paid {profile.model} cases for "
+        f"{profile.attack} ({METHODS} methods; 97 Clean + 949 Attack per method; "
+        f"{DEFAULT_WORKERS} case workers)."
     )
     answer = input('Type "RUN 11506" to start the paid full experiment: ').strip()
     if answer != "RUN 11506":
         raise BootstrapError("Full experiment was not confirmed; nothing was started")
 
 
-def _remove_watchdog(root: Path) -> None:
+def _remove_watchdog(root: Path, experiment: str = DEFAULT_EXPERIMENT) -> None:
     listed = _run(["crontab", "-l"], cwd=root, check=False, capture_output=True)
     if listed.returncode == 1:
         return
@@ -302,7 +379,7 @@ def _remove_watchdog(root: Path) -> None:
     kept = []
     index = 0
     while index < len(lines):
-        if lines[index] == f"# {_cron_marker(root)}":
+        if lines[index] == f"# {_cron_marker(root, experiment)}":
             index += 2
         else:
             kept.append(lines[index])
@@ -314,22 +391,31 @@ def _remove_watchdog(root: Path) -> None:
 def start(
     root: Path,
     *,
+    experiment: str = DEFAULT_EXPERIMENT,
     assume_yes: bool = False,
     non_interactive: bool = False,
     acceptance: bool = False,
 ) -> Path:
+    profile = get_experiment(experiment)
     if not os.environ.get("AS_ALL_PYTHON"):
         _require_program("uv", "See https://docs.astral.sh/uv/getting-started/installation/")
     _require_program("tmux", "Install it with your Linux package manager.")
     _require_program("crontab", "Install your distribution's cron package.")
-    configure_secrets(root, non_interactive=non_interactive)
+    configure_secrets(
+        root, experiment=profile.id, non_interactive=non_interactive
+    )
     _sync(root)
 
-    session = _session_name(root)
-    active = _read_active(root)
+    session = _session_name(root, profile.id)
+    active = _read_active(root, profile.id)
     requested_mode = "acceptance" if acceptance else "full"
     is_new = active is None
     if active is not None:
+        active_experiment = active.get("experiment")
+        if active_experiment not in (None, profile.id):
+            raise BootstrapError(
+                f"Active-run state belongs to {active_experiment}, not {profile.id}"
+            )
         run_dir = Path(active["run_dir"])
         if _tmux_running(root, session):
             active_mode = active.get("mode", "full")
@@ -337,23 +423,31 @@ def start(
                 raise BootstrapError(
                     f"A {active_mode} run is already active in tmux session {session}"
                 )
-            _install_crontab(root, run_dir)
+            _install_crontab(root, run_dir, profile.id)
             print(f"Experiment is already running in tmux session: {session}")
             print(f"Results: {run_dir.resolve()}")
             return run_dir.resolve()
         if active.get("mode", "full") != requested_mode:
-            run_dir = _new_run_dir(root, mode=requested_mode)
+            run_dir = _new_run_dir(
+                root, mode=requested_mode, experiment=profile.id
+            )
             is_new = True
         elif not run_dir.is_dir():
             raise BootstrapError(f"Active result directory does not exist: {run_dir}")
     else:
-        run_dir = _new_run_dir(root, mode=requested_mode)
+        run_dir = _new_run_dir(root, mode=requested_mode, experiment=profile.id)
 
     if is_new:
-        env = runtime_env(root)
-        _run(_cli_args("preflight", run_dir, acceptance=acceptance), cwd=root, env=env)
+        env = runtime_env(root, experiment=profile.id)
+        _run(
+            _cli_args(
+                "preflight", run_dir, acceptance=acceptance, experiment=profile.id
+            ),
+            cwd=root,
+            env=env,
+        )
     if not acceptance:
-        _confirm_full_run(assume_yes=assume_yes)
+        _confirm_full_run(assume_yes=assume_yes, experiment=profile.id)
 
     launcher = [
         "tmux",
@@ -363,42 +457,79 @@ def start(
         session,
         "-c",
         str(root.resolve()),
-        _tmux_shell_command(run_dir, acceptance=acceptance),
+        _tmux_shell_command(
+            run_dir, acceptance=acceptance, experiment=profile.id
+        ),
     ]
     _run(launcher, cwd=root)
-    _write_active(root, run_dir=run_dir, session=session, mode=requested_mode)
-    _install_crontab(root, run_dir)
+    _write_active(
+        root,
+        run_dir=run_dir,
+        session=session,
+        mode=requested_mode,
+        experiment=profile.id,
+    )
+    _install_crontab(root, run_dir, profile.id)
 
     print(f"Started tmux session: {session}")
+    print(f"Experiment: {profile.id} ({profile.model}; {profile.attack})")
+    print(f"Workers: {DEFAULT_WORKERS}")
     print(f"Results: {run_dir.resolve()}")
     print("Status: bash run.sh status")
     print(f"Attach: tmux attach -t {session}")
     return run_dir.resolve()
 
 
-def show_status(root: Path) -> int:
-    active = _read_active(root)
+def show_status(root: Path, experiment: str = DEFAULT_EXPERIMENT) -> int:
+    profile = get_experiment(experiment)
+    active = _read_active(root, profile.id, include_legacy=True)
     if active is None:
         print("No AS-all run has been started from this checkout.")
         return 1
     run_dir = Path(active["run_dir"]).resolve()
     print(f"Results: {run_dir}")
-    result = _run(_cli_args("status", run_dir), cwd=root, env=runtime_env(root), check=False)
+    result = _run(
+        _cli_args("status", run_dir, experiment=profile.id),
+        cwd=root,
+        env=runtime_env(root, experiment=profile.id),
+        check=False,
+    )
     return result.returncode
 
 
-def _run_cli(root: Path, run_dir: Path, *, acceptance: bool) -> int:
-    env = runtime_env(root)
+def _run_cli(
+    root: Path,
+    run_dir: Path,
+    *,
+    acceptance: bool,
+    experiment: str = DEFAULT_EXPERIMENT,
+) -> int:
+    profile = get_experiment(experiment)
+    env = runtime_env(root, experiment=profile.id)
     result = _run(
-        _cli_args("run", run_dir, acceptance=acceptance),
+        _cli_args(
+            "run", run_dir, acceptance=acceptance, experiment=profile.id
+        ),
         cwd=root,
         env=env,
         check=False,
     )
     completion = run_dir / "completion.json"
     if completion.exists() and json.loads(completion.read_text()).get("all_terminal"):
-        _remove_watchdog(root)
+        _remove_watchdog(root, profile.id)
     return result.returncode
+
+
+def _choose_experiment() -> str:
+    print("Choose an experiment:")
+    print("  1. Gemini + important_instructions (default)")
+    print("  2. Qwen + tool_knowledge")
+    answer = input("Selection [1]: ").strip()
+    if answer in ("", "1"):
+        return DEFAULT_EXPERIMENT
+    if answer == "2":
+        return "qwen-tool-knowledge"
+    raise BootstrapError("Experiment selection must be 1 or 2")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -408,10 +539,19 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser.add_argument("--yes", action="store_true", help="accept the full-run charge warning")
     start_parser.add_argument("--non-interactive", action="store_true")
     start_parser.add_argument("--acceptance", action="store_true", help="run the 22-case acceptance set")
-    subparsers.add_parser("status", help="show the active run status")
+    start_parser.add_argument("--experiment", choices=("gemini-important", "qwen-tool-knowledge"))
+    status_parser = subparsers.add_parser("status", help="show the active run status")
+    status_parser.add_argument(
+        "--experiment", choices=("gemini-important", "qwen-tool-knowledge"),
+        default=DEFAULT_EXPERIMENT,
+    )
     internal = subparsers.add_parser("_run-cli", help=argparse.SUPPRESS)
     internal.add_argument("--run-dir", type=Path, required=True)
     internal.add_argument("--acceptance", action="store_true")
+    internal.add_argument(
+        "--experiment", choices=("gemini-important", "qwen-tool-knowledge"),
+        default=DEFAULT_EXPERIMENT,
+    )
     return parser
 
 
@@ -420,18 +560,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     root = repo_root()
     try:
         if args.command == "start":
+            experiment = args.experiment
+            if experiment is None:
+                experiment = (
+                    DEFAULT_EXPERIMENT
+                    if args.non_interactive
+                    else _choose_experiment()
+                )
             start(
                 root,
+                experiment=experiment,
                 assume_yes=args.yes,
                 non_interactive=args.non_interactive,
                 acceptance=args.acceptance,
             )
             return 0
         if args.command == "status":
-            return show_status(root)
+            return show_status(root, experiment=args.experiment)
         if args.command == "_run-cli":
-            return _run_cli(root, args.run_dir, acceptance=args.acceptance)
-    except (BootstrapError, subprocess.CalledProcessError) as exc:
+            return _run_cli(
+                root,
+                args.run_dir,
+                acceptance=args.acceptance,
+                experiment=args.experiment,
+            )
+    except (BootstrapError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
     raise AssertionError(f"Unhandled command: {args.command}")

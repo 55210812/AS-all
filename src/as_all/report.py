@@ -44,12 +44,40 @@ def cost(path):
             usages = [a.get("raw_usage") for a in attempts if a.get("retry")]
             usages.append(event.get("raw_usage"))
             for usage in usages:
-                _add_usage(bucket, usage)
+                _add_usage(bucket, usage, event.get("provider"))
     return result
 
 
-def _add_usage(bucket, usage):
-    if not usage or not all(k in usage for k in ("promptTokenCount", "candidatesTokenCount")):
+def _add_usage(bucket, usage, provider=None):
+    if not usage:
+        bucket["missing_usage"] += 1
+        return
+    is_qwen = provider == "qwen" or any(
+        key in usage for key in ("prompt_tokens", "completion_tokens", "prompt_tokens_details")
+    )
+    if is_qwen:
+        if not all(k in usage for k in ("prompt_tokens", "completion_tokens")):
+            bucket["missing_usage"] += 1
+            return
+        raw = usage["prompt_tokens"]
+        output = usage["completion_tokens"]
+        if type(raw) is not int or type(output) is not int or raw < 0 or output < 0:
+            raise ValueError("Invalid supplier token count")
+        bucket["responses"] += 1
+        bucket["raw_input"] += raw
+        # OpenAI-compatible completion_tokens already includes reasoning tokens.
+        bucket["output"] += output
+        details = usage.get("prompt_tokens_details")
+        cached = details.get("cached_tokens") if isinstance(details, dict) else None
+        if cached is None:
+            bucket["unknown_cache"] += 1
+        else:
+            if type(cached) is not int or not 0 <= cached <= raw:
+                raise ValueError("Invalid supplier cache count")
+            bucket["cached_input"] += cached
+            bucket["noncached_input"] += raw - cached
+        return
+    if not all(k in usage for k in ("promptTokenCount", "candidatesTokenCount")):
         bucket["missing_usage"] += 1
         return
     bucket["responses"] += 1
@@ -77,9 +105,22 @@ def _add_usage(bucket, usage):
 
 
 def report(run_dir):
+    manifest = read(run_dir / "manifest.json")
+    experiment = manifest.get(
+        "experiment_id", manifest.get("experiment", "gemini-important")
+    )
+    model = manifest.get("model", "gemini-2.5-flash")
+    attack = manifest.get("attack", "important_instructions")
+    provider = manifest.get("provider", "gemini" if experiment == "gemini-important" else "qwen")
     rows = []
     for path in sorted((run_dir / "cases").glob("*/result.json")):
         row = read(path)
+        row_experiment = row.get("experiment_id", row.get("experiment"))
+        if row_experiment not in (None, experiment):
+            raise ValueError(
+                f"Case {row.get('id', path.parent.name)} belongs to experiment "
+                f"{row_experiment}, not {experiment}"
+            )
         if "costs" not in row:
             row["costs"] = cost(path.parent / "requests.jsonl")
         rows.append(row)
@@ -88,7 +129,9 @@ def report(run_dir):
         groups[row["method"], "Attack" if row["injection"] else "Clean"].append(row)
     summaries = []
     lines = [
-        "# Gemini十一方法结果",
+        f"# {model} {attack} 十一方法结果",
+        "",
+        f"实验：`{experiment}`；供应商：`{provider}`。",
         "",
         "原始评测保留；运行错误不是成功防御。Token按案例平均，输入不扣缓存。",
         "缺失usage或缓存字段列为未知；带unknown的数值仅是已知部分。",
@@ -170,7 +213,7 @@ def report(run_dir):
     out = run_dir / "report"
     atomic(out / "summary.json", summaries)
     atomic(out / "runtime_errors.json", [r for r in rows if r.get("error")])
-    atomic(out / "source_hashes.json", read(run_dir / "manifest.json")["source_hashes"])
+    atomic(out / "source_hashes.json", manifest["source_hashes"])
     atomic(
         out / "paired1046.json",
         {cid: {r["method"]: r for r in rows if r["case_id"] == cid} for cid in sorted({r["case_id"] for r in rows})},

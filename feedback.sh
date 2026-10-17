@@ -18,9 +18,11 @@ if [[ "$confirmation" != "PUBLIC" ]]; then
 fi
 
 args=(--confirm-public-upload)
-if [[ $# -gt 0 ]]; then
+if [[ $# -gt 0 && "$1" != --* ]]; then
   args+=(--run-dir "$1")
+  shift
 fi
+args+=("$@")
 
 export PYTHONPATH="$ROOT/src:$ROOT/vendor/agentdojo/src:$ROOT/vendor/core/src${PYTHONPATH:+:$PYTHONPATH}"
 exec "$PYTHON" -m as_all.feedback "${args[@]}"
