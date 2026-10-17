@@ -4,6 +4,8 @@
 
 运行环境为Linux，需已安装Python3（含venv）、Git、tmux和crontab。反馈上传另需[GitHub CLI（gh）](https://cli.github.com/)。脚本自动建立Python3.12项目环境、安装锁定依赖并下载检测器权重；首次安装包含PyTorch，下载可能较大。无需预先安装uv，也无需已有实验目录或私人服务器配置。
 
+检测器优先使用CUDA，也支持CPU。8并行启动预检要求所选设备至少有16GiB空闲内存或显存。
+
 克隆最新主分支并运行：
 
 ```bash
@@ -43,8 +45,6 @@ bash run.sh start --experiment qwen-tool-knowledge
 No Defense、Tool Filtering、Prompt Repetition、Input Delimiting、Injection Detection、IPIGuard、Task Shield、Standard Holistic、AS-only、AS-only＋Guard、AS-only＋Guard＋Frame提醒。
 
 每种方法运行Slack、Travel、Workspace、Banking四个领域的1046例。各实验内十一方法使用一致任务和冻结攻击；Gemini与Qwen攻击分开，不混合统计。工具只操作随包提供的模拟环境。
-
-Gemini AS-only三方法保持A版：领域工具注册到`functionDeclarations`，工具参数附`authorization_witness`，system不重复列工具注册表。Qwen保持原代理格式：system保留`available_domain_tools`，统一代理提交领域调用与Witness；两种Guard采用已确认的via强化提示词。Qwen不转换成Gemini A版。
 
 Agent开启动态Thinking，防御生成请求关闭Thinking。各方法的实现与配置见[方法说明](docs/METHODS.md)。
 
@@ -88,11 +88,3 @@ bash feedback.sh results/qwen-tool-knowledge/<run_id>
 反馈PR和附件是公开的。只在你主动执行反馈脚本时上传；密钥、历史结果、模型权重和本机配置不进入主分支。反馈PR用于取回结果，不自动合并结果数据。
 
 方法来源和改动见[方法说明](docs/METHODS.md)、[IPIGuard对齐](docs/IPIGUARD_ALIGNMENT.md)和[第三方许可证](THIRD_PARTY_NOTICES.md)。
-
-## 小范围验收与已有环境
-
-```bash
-bash run.sh start --experiment qwen-tool-knowledge --acceptance
-```
-
-固定每方法Slack user_task_0 Clean及injection_task_1，共22例，不自动接续全量，不按指标取优。已有Python3.12环境可通过`AS_ALL_PYTHON=/absolute/path/to/python`复用依赖；启动器仍检查依赖、固定检测器文件和8并行资源容量，不降低并行或跳过方法。检测器按每副本2GiB、共16GiB空闲内存／显存作保守预检，此值不是实测峰值。
