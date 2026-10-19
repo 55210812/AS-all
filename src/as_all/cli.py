@@ -58,7 +58,7 @@ def registry(acceptance=False, experiment=DEFAULT_EXPERIMENT):
                   and c["injection"] in (None, "injection_task_1")]
     return [{**c, "method": method, "experiment_id": profile.id,
              "id": hashlib.sha256(f"{profile.id}:{method}:{c['case_id']}".encode()).hexdigest()[:24]}
-            for method in METHODS for c in result]
+            for method in (profile.methods or METHODS) for c in result]
 
 
 def channel_fingerprint(profile):
@@ -70,7 +70,8 @@ def preflight(run_dir, acceptance=False, download=True, experiment=DEFAULT_EXPER
     profile = get_experiment(experiment)
     manifest = {"experiment_id": profile.id, "provider": profile.provider, "model": profile.model,
                 "benchmark": "v1.2.2", "attack": profile.attack,
-                "acceptance_only": acceptance, "methods": METHODS, "cases": registry(acceptance, profile.id),
+                "acceptance_only": acceptance, "methods": profile.methods or METHODS,
+                "cases": registry(acceptance, profile.id),
                 "workers": WORKERS, "case_retries": 0, "manager_restores": 0,
                 "agent_thinking_budget": -1, "defense_thinking_budget": 0, "temperature": 0,
                 "source_hashes": source_hashes()}
@@ -100,7 +101,7 @@ def preflight(run_dir, acceptance=False, download=True, experiment=DEFAULT_EXPER
         atomic(path, manifest)
     if shutil.disk_usage(run_dir).free < 5 * 1024**3:
         raise RuntimeError("At least 5GiB free disk is required")
-    if download:
+    if download and "transformers_pi_detector" in manifest["methods"]:
         from as_all.methods import detector_path, detector_capacity
         capacity = detector_capacity()
         atomic(run_dir / "detector_capacity.json", capacity)

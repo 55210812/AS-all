@@ -1,6 +1,6 @@
 # 方法实现
 
-统一入口src/as_all/methods.py只注册十一种方法，不读取历史结果。
+统一入口src/as_all/methods.py按实验选择方法，不读取历史结果。原三项实验各十一方法；新增`qwen-important`为四种原版Witness形式：No Witness＋Guard、当前轮Reasoning Context＋Guard、AS＋PG、AS＋PG＋Guard。该入口使用Qwen重要信息攻击、97份简化Frame，每方法1046例，共4184例，共享8个案例worker。原Prompt、输出协议、输入边界及来源见[Witness形式对比](WITNESS_FORMS.md)。
 
 新增实验`gemini-tool-knowledge`：模型为gemini-2.5-flash，十一方法各97 Clean＋949 Attack，共11,506例，共享8个案例worker。使用原生ToolKnowledgeAttack构造并独立冻结949份Gemini目标攻击，包含工具调用与占位参数指引；不读取历史实验结果。与`gemini-important`共享Gemini原生客户端和A版三方法，Guard沿用A版via-claim Prompt、Schema及证据切片，不修改方法算法。两种攻击分别使用独立运行状态、清单、请求账本和结果目录。
 

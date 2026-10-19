@@ -17,8 +17,6 @@ from typing import Mapping, Sequence
 
 from .experiments import DEFAULT_EXPERIMENT, EXPERIMENTS, WORKERS, Experiment, get_experiment
 
-TOTAL_CASES = 11_506
-METHODS = 11
 DEFAULT_WORKERS = WORKERS
 
 
@@ -359,13 +357,17 @@ def _confirm_full_run(
     if assume_yes:
         return
     profile = get_experiment(experiment)
+    from .methods import METHODS
+    methods = profile.methods or METHODS
+    total = len(methods) * 1046
     print(
-        f"This will run {TOTAL_CASES:,} paid {profile.model} cases for "
-        f"{profile.attack} ({METHODS} methods; 97 Clean + 949 Attack per method; "
+        f"This will run {total:,} paid {profile.model} cases for "
+        f"{profile.attack} ({len(methods)} methods; 97 Clean + 949 Attack per method; "
         f"{DEFAULT_WORKERS} case workers)."
     )
-    answer = input('Type "RUN 11506" to start the paid full experiment: ').strip()
-    if answer != "RUN 11506":
+    confirmation = f"RUN {total}"
+    answer = input(f'Type "{confirmation}" to start the paid full experiment: ').strip()
+    if answer != confirmation:
         raise BootstrapError("Full experiment was not confirmed; nothing was started")
 
 
@@ -525,6 +527,7 @@ def _choose_experiment() -> str:
     print("  1. Gemini + important_instructions (default)")
     print("  2. Qwen + tool_knowledge")
     print("  3. Gemini + tool_knowledge")
+    print("  4. Qwen + important_instructions (four Witness-form methods)")
     answer = input("Selection [1]: ").strip()
     if answer in ("", "1"):
         return DEFAULT_EXPERIMENT
@@ -532,7 +535,9 @@ def _choose_experiment() -> str:
         return "qwen-tool-knowledge"
     if answer == "3":
         return "gemini-tool-knowledge"
-    raise BootstrapError("Experiment selection must be 1, 2 or 3")
+    if answer == "4":
+        return "qwen-important"
+    raise BootstrapError("Experiment selection must be 1, 2, 3 or 4")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -541,7 +546,7 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser = subparsers.add_parser("start", help="configure and start the experiment")
     start_parser.add_argument("--yes", action="store_true", help="accept the full-run charge warning")
     start_parser.add_argument("--non-interactive", action="store_true")
-    start_parser.add_argument("--acceptance", action="store_true", help="run the 22-case acceptance set")
+    start_parser.add_argument("--acceptance", action="store_true", help="run one fixed Clean and Attack per selected method")
     start_parser.add_argument("--experiment", choices=EXPERIMENTS)
     status_parser = subparsers.add_parser("status", help="show the active run status")
     status_parser.add_argument(

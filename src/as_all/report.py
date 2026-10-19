@@ -114,6 +114,7 @@ def report(run_dir):
     model = manifest.get("model", profile.model)
     attack = manifest.get("attack", profile.attack)
     provider = manifest.get("provider", profile.provider)
+    methods = manifest.get("methods", profile.methods or METHODS)
     rows = []
     for path in sorted((run_dir / "cases").glob("*/result.json")):
         row = read(path)
@@ -131,7 +132,7 @@ def report(run_dir):
         groups[row["method"], "Attack" if row["injection"] else "Clean"].append(row)
     summaries = []
     lines = [
-        f"# {model} {attack} 十一方法结果",
+        f"# {model} {attack} {'十一' if len(methods) == 11 else '四' if len(methods) == 4 else str(len(methods))}方法结果",
         "",
         f"实验：`{experiment}`；供应商：`{provider}`。",
         "",
@@ -146,7 +147,7 @@ def report(run_dir):
             "| 方法 | 正常/终止 | Utility | ASR | Agent请求 | 防御请求 | Agent平均原始输入 | Agent平均输出 | 防御平均原始输入 | 防御平均输出 | 平均秒 | 未知usage/缓存 |",
             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
-        for method in METHODS:
+        for method in methods:
             items = groups[method, scene]
             normal = [r for r in items if not r.get("error")]
             n = len(normal)
@@ -215,6 +216,18 @@ def report(run_dir):
     out = run_dir / "report"
     atomic(out / "summary.json", summaries)
     atomic(out / "runtime_errors.json", [r for r in rows if r.get("error")])
+    if "reasoning_context_guard" in methods:
+        coverage = []
+        for row in rows:
+            if row["method"] != "reasoning_context_guard":
+                continue
+            trace = run_dir / "cases" / row["id"] / "semantic/index.jsonl"
+            events = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+            decisions = [event for event in events if event.get("stage") == "guard_reasoning_context_decision"]
+            present = sum(bool(event.get("reasoning_present")) for event in decisions)
+            coverage.append({"case_id": row["case_id"], "guarded_calls": len(decisions),
+                             "with_reasoning": present, "without_reasoning": len(decisions) - present})
+        atomic(out / "reasoning_coverage.json", coverage)
     atomic(out / "source_hashes.json", manifest["source_hashes"])
     atomic(
         out / "paired1046.json",

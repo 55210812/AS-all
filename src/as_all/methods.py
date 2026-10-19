@@ -156,6 +156,11 @@ def build(method, case_dir, experiment=DEFAULT_EXPERIMENT):
     from agentdojo.agent_pipeline.llms import openai_llm
     if hasattr(openai_llm.chat_completion_request, "__wrapped__"):
         openai_llm.chat_completion_request = openai_llm.chat_completion_request.__wrapped__
+    if profile.methods is not None:
+        if method not in profile.methods:
+            raise ValueError(f"Method {method} is not part of {profile.id}")
+        from as_all.witness_forms import build as build_forms
+        return build_forms(method, case_dir, agent, defense, profile.model)
     if method.startswith("as_only"):
         from as_all.native_a import build as build_a
         if profile.provider == "gemini":

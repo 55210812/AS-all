@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 DEFAULT_EXPERIMENT = "gemini-important"
 WORKERS = 8
+WITNESS_FORM_METHODS = ("no_witness_guard", "reasoning_context_guard", "as_pg", "as_pg_guard")
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,7 @@ class Experiment:
     base_env: str
     default_base: str
     attacks_file: str
+    methods: tuple[str, ...] | None = None
 
 
 EXPERIMENTS = {
@@ -24,6 +26,8 @@ EXPERIMENTS = {
         "QWEN_API_KEY", "QWEN_BASE_URL", "", "qwen_tool_knowledge949.json"),
     "gemini-tool-knowledge": Experiment("gemini-tool-knowledge", "gemini-2.5-flash", "tool_knowledge", "gemini",
         "GEMINI_API_KEY", "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta", "gemini_tool_knowledge949.json"),
+    "qwen-important": Experiment("qwen-important", "qwen3.5-flash", "important_instructions", "qwen",
+        "QWEN_API_KEY", "QWEN_BASE_URL", "", "qwen_important949.json", WITNESS_FORM_METHODS),
 }
 
 

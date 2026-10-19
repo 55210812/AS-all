@@ -22,7 +22,7 @@ def test_full_input_coverage_and_profile_isolation(tmp_path):
         assert sum(r["injection"] is None for r in cases) == 97
         assert {r["case_id"] for r in cases if r["injection"]} == attacks.keys()
     all_ids = [r["id"] for experiment in EXPERIMENTS for r in registry(experiment=experiment)]
-    assert len(all_ids) == len(set(all_ids)) == 3 * 11506
+    assert len(all_ids) == len(set(all_ids)) == 3 * 11506 + 4184
     state = preflight(tmp_path, download=False, experiment=EXPERIMENT)
     assert len(state["cases"]) == 11506
     assert state["provider"] == "gemini"

@@ -1,7 +1,7 @@
 [project]
 name = "as-all"
-version = "0.3.0"
-description = "Portable Gemini and Qwen AgentDojo eleven-method evaluation"
+version = "0.4.0"
+description = "Portable Gemini and Qwen AgentDojo defense and Witness-form evaluation"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "agentdojo", "semantic-action-frame-guard", "openai==1.76.2",
