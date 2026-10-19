@@ -16,12 +16,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .experiments import EXPERIMENTS
 
 UPSTREAM_REPOSITORY = "55210812/AS-all"
 MAX_RELEASE_PART_BYTES = 45 * 1024 * 1024
 MAX_BRANCH_ARCHIVE_BYTES = 10 * 1024 * 1024
 REPORT_PREFIXES = ("summary", "source_hash", "runtime_error")
-EXPERIMENTS = ("gemini-important", "qwen-tool-knowledge")
 
 
 class FeedbackError(RuntimeError):

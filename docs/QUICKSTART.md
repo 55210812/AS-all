@@ -1,6 +1,6 @@
 # Quick start
 
-Choose Gemini important_instructions or Qwen tool_knowledge. Each experiment runs
+Choose Gemini important_instructions, Qwen tool_knowledge or Gemini tool_knowledge. Each experiment runs
 eleven methods:97 Clean and949 Attack cases per method, or11,506 paid cases. Benchmark
 tools operate only on AgentDojo's simulated environments.
 
@@ -24,10 +24,12 @@ cd AS-all
 bash run.sh
 ```
 
-On the first run, choose1(default) for Gemini or2 for Qwen. The script asks for
+On the first run, choose1(default) for Gemini important_instructions,2 for Qwen
+tool_knowledge or3 for Gemini tool_knowledge. The script asks for
 the selected provider's API key(hidden), API base and optional Hugging Face token.
 Gemini uses native generateContent; Qwen uses its original Chat Completions protocol.
-Both models are preset. Credentials are stored separately in
+Both models are preset. The two Gemini experiments share Gemini credentials;
+Qwen credentials are separate. Credentials are stored in
 `.secrets.env` with mode `0600`; that file is ignored by Git and is not placed
 in process arguments or experiment logs.
 
@@ -42,6 +44,16 @@ The script then:
 The watchdog never restarts the manager. Existing unrelated cron entries are
 preserved and backed up under `.state/`.
 
+To select the new full experiment directly:
+
+```bash
+bash run.sh start --experiment gemini-tool-knowledge
+```
+
+This selects only that experiment:11 methods,11,506 cases,8 shared case workers.
+Gemini Holistic and the three AS-only methods use A-version native domain tools
+with their own unchanged Witness schemas. Qwen keeps its original proxy interface.
+
 ## Progress and results
 
 The launcher prints the absolute result directory, always under:
@@ -55,6 +67,7 @@ Check progress without finding the run ID manually:
 ```bash
 bash run.sh status
 bash run.sh status --experiment qwen-tool-knowledge
+bash run.sh status --experiment gemini-tool-knowledge
 ```
 
 Running `bash run.sh` again while its tmux session exists does not launch a
@@ -76,6 +89,7 @@ After completion, package and return the selected reports with:
 ```bash
 bash feedback.sh
 bash feedback.sh --experiment qwen-tool-knowledge
+bash feedback.sh --experiment gemini-tool-knowledge
 ```
 
 That command performs a credential scan before preparing any public GitHub

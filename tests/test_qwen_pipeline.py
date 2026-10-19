@@ -9,8 +9,9 @@ from as_all.qwen_transport import QwenClient
 
 
 @pytest.mark.parametrize("experiment,model,attack", [("gemini-important", "gemini-2.5-flash", "important_instructions"),
-                                                    ("qwen-tool-knowledge", "qwen3.5-flash", "tool_knowledge")])
-def test_two_frozen_profiles_and_eight_workers(tmp_path, experiment, model, attack):
+                                                    ("qwen-tool-knowledge", "qwen3.5-flash", "tool_knowledge"),
+                                                    ("gemini-tool-knowledge", "gemini-2.5-flash", "tool_knowledge")])
+def test_frozen_profiles_and_eight_workers(tmp_path, experiment, model, attack):
     rows = registry(experiment=experiment)
     assert len(rows) == len({r["id"] for r in rows}) == 11506
     assert len({r["case_id"] for r in rows}) == 1046

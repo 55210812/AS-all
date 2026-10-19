@@ -9,7 +9,7 @@ def check_schema(schema, root=None):
     """Reject unsupported keywords; covers the exact frozen schemas, not general JSON Schema."""
     root = schema if root is None else root
     allowed = {'$defs', '$ref', 'additionalProperties', 'anyOf', 'default', 'description', 'enum',
-               'items', 'minItems', 'minLength', 'properties', 'required', 'title', 'type'}
+               'items', 'minItems', 'minLength', 'minimum', 'maximum', 'properties', 'required', 'title', 'type'}
     assert not set(schema)-allowed, 'unsupported schema keyword'
     if '$ref' in schema:
         resolve(schema['$ref'], root)
@@ -67,20 +67,26 @@ def witness_tools(no_witness, proxy):
         check_schema(schema)
     return tools
 
-def transform(no_witness, proxy):
+def transform(no_witness, proxy, *, holistic=False):
     body = copy.deepcopy(proxy)
     system = text(body)
     old = ['For every domain action, call only submit_tool_call_with_authorization_witness.',
            'In the same proxy call provide one proposed_tool_call and one authorization_witness.']
     new = ['For every domain action, call the corresponding declared domain function and include authorization_witness in its arguments.',
            'In each call provide the original domain arguments and one authorization_witness.']
+    if holistic:
+        old = ['For each new domain action call only submit_tool_call_with_authorization_witness.',
+               'In that same proxy call provide proposed_tool_call and authorization_witness.']
+        new = ['For each new domain action call the corresponding declared domain function.',
+               'In that same call provide the original domain arguments and authorization_witness.']
     for before, after in zip(old, new):
         assert system.count(before) == 1
         system = system.replace(before, after)
     system = system.replace('without calling the proxy.', 'without calling a tool.')
     before, payload = system.split('PROGRAM-GENERATED CONTEXT:\n', 1)
     data = json.loads(payload)
-    assert set(data) == {'trusted_task_frames', 'available_domain_tools'}
+    authority_key = 'trusted_user_task' if holistic else 'trusted_task_frames'
+    assert set(data) == {authority_key, 'available_domain_tools'}
     data.pop('available_domain_tools')
     body['systemInstruction'] = {'parts': [{'text': before+'PROGRAM-GENERATED CONTEXT:\n'+json.dumps(data, ensure_ascii=False)}]}
     body['tools'] = witness_tools(no_witness, proxy)

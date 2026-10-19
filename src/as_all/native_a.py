@@ -11,6 +11,8 @@ PROXY = "submit_tool_call_with_authorization_witness"
 
 
 class AClient(NativeClient):
+    holistic = False
+
     def _messages(self, messages):
         for message in messages:
             if message.get("role") == "assistant" and self._history_key(message) not in self._native_history:
@@ -24,7 +26,7 @@ class AClient(NativeClient):
         original["tools"] = [{"functionDeclarations": [
             {"name": f["name"], "description": f["description"], "parametersJsonSchema": f["parameters"]}
             for f in context["available_domain_tools"]]}]
-        return a_schema.transform(original, body)
+        return a_schema.transform(original, body, holistic=self.holistic)
 
     def _completion(self, data):
         result = super()._completion(data)

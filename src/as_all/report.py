@@ -4,6 +4,7 @@ import csv
 import json
 from collections import defaultdict
 from as_all.cli import atomic, read, sha, status
+from as_all.experiments import get_experiment
 from as_all.methods import METHODS
 
 
@@ -109,9 +110,10 @@ def report(run_dir):
     experiment = manifest.get(
         "experiment_id", manifest.get("experiment", "gemini-important")
     )
-    model = manifest.get("model", "gemini-2.5-flash")
-    attack = manifest.get("attack", "important_instructions")
-    provider = manifest.get("provider", "gemini" if experiment == "gemini-important" else "qwen")
+    profile = get_experiment(experiment)
+    model = manifest.get("model", profile.model)
+    attack = manifest.get("attack", profile.attack)
+    provider = manifest.get("provider", profile.provider)
     rows = []
     for path in sorted((run_dir / "cases").glob("*/result.json")):
         row = read(path)

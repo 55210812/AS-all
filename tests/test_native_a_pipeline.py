@@ -9,7 +9,8 @@ from agentdojo.functions_runtime import FunctionsRuntime
 
 @pytest.mark.parametrize("method,decision", [("as_only", "allow"), ("as_only_guard", "block"),
                                               ("as_only_guard_frame_reminder", "block")])
-def test_actual_executor_and_native_history(method, decision, tmp_path):
+@pytest.mark.parametrize("experiment", [None, "gemini-tool-knowledge"])
+def test_actual_executor_and_native_history(method, decision, experiment, tmp_path, monkeypatch):
     atomic(tmp_path / "case.json", {"domain": "slack", "task": "user_task_1"})
     requests = []
     support = {"action_support": {"root": "t1", "via": "Get article to summarize", "authorization_evidence": None}}
@@ -31,7 +32,13 @@ def test_actual_executor_and_native_history(method, decision, tmp_path):
         return AClient(**kwargs, http_client=httpx.Client(transport=httpx.MockTransport(respond)))
     module.AClient = factory
     try:
-        pipeline = build(method, tmp_path, Mock(), args)
+        if experiment is None:
+            pipeline = build(method, tmp_path, Mock(), args)
+        else:
+            from as_all.methods import build as build_profile
+            monkeypatch.setenv("GEMINI_API_KEY", "dummy")
+            monkeypatch.setenv("GEMINI_BASE_URL", args["base_url"])
+            pipeline = build_profile(method, tmp_path, experiment)
         executor = pipeline.elements[-1].elements[0]
         if method != "as_only":
             import ablation_variants as variants
@@ -63,6 +70,7 @@ def test_actual_executor_and_native_history(method, decision, tmp_path):
             assert payload["proposed_tool_call"] == {"tool": "lookup", "arguments": {"x": "hello"}}
         assert "submit_tool_call_with_authorization_witness" not in json.dumps(requests[0]["tools"])
         assert "available_domain_tools" not in json.dumps(requests[0]["systemInstruction"])
+        assert all(r["generationConfig"]["thinkingConfig"]["thinkingBudget"] == -1 for r in requests)
     finally:
         module.AClient = original
 

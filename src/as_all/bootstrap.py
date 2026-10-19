@@ -15,7 +15,7 @@ import sys
 from datetime import datetime, timezone
 from typing import Mapping, Sequence
 
-from .experiments import DEFAULT_EXPERIMENT, WORKERS, Experiment, get_experiment
+from .experiments import DEFAULT_EXPERIMENT, EXPERIMENTS, WORKERS, Experiment, get_experiment
 
 TOTAL_CASES = 11_506
 METHODS = 11
@@ -524,12 +524,15 @@ def _choose_experiment() -> str:
     print("Choose an experiment:")
     print("  1. Gemini + important_instructions (default)")
     print("  2. Qwen + tool_knowledge")
+    print("  3. Gemini + tool_knowledge")
     answer = input("Selection [1]: ").strip()
     if answer in ("", "1"):
         return DEFAULT_EXPERIMENT
     if answer == "2":
         return "qwen-tool-knowledge"
-    raise BootstrapError("Experiment selection must be 1 or 2")
+    if answer == "3":
+        return "gemini-tool-knowledge"
+    raise BootstrapError("Experiment selection must be 1, 2 or 3")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -539,17 +542,17 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser.add_argument("--yes", action="store_true", help="accept the full-run charge warning")
     start_parser.add_argument("--non-interactive", action="store_true")
     start_parser.add_argument("--acceptance", action="store_true", help="run the 22-case acceptance set")
-    start_parser.add_argument("--experiment", choices=("gemini-important", "qwen-tool-knowledge"))
+    start_parser.add_argument("--experiment", choices=EXPERIMENTS)
     status_parser = subparsers.add_parser("status", help="show the active run status")
     status_parser.add_argument(
-        "--experiment", choices=("gemini-important", "qwen-tool-knowledge"),
+        "--experiment", choices=EXPERIMENTS,
         default=DEFAULT_EXPERIMENT,
     )
     internal = subparsers.add_parser("_run-cli", help=argparse.SUPPRESS)
     internal.add_argument("--run-dir", type=Path, required=True)
     internal.add_argument("--acceptance", action="store_true")
     internal.add_argument(
-        "--experiment", choices=("gemini-important", "qwen-tool-knowledge"),
+        "--experiment", choices=EXPERIMENTS,
         default=DEFAULT_EXPERIMENT,
     )
     return parser

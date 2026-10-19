@@ -148,7 +148,11 @@ def build(method, case_dir, experiment=DEFAULT_EXPERIMENT):
     if (run_dir / "manifest.json").exists():
         from as_all.cli import check_request_boundary
         args["request_check"] = lambda: check_request_boundary(run_dir)
-    agent, defense = client(**args, stage="agent"), client(**args, stage="defense")
+    agent_client = client
+    if method == "holistic" and profile.provider == "gemini":
+        from as_all.holistic import HolisticAClient
+        agent_client = HolisticAClient
+    agent, defense = agent_client(**args, stage="agent"), client(**args, stage="defense")
     from agentdojo.agent_pipeline.llms import openai_llm
     if hasattr(openai_llm.chat_completion_request, "__wrapped__"):
         openai_llm.chat_completion_request = openai_llm.chat_completion_request.__wrapped__

@@ -196,7 +196,8 @@ def test_experiments_have_isolated_state_session_cron_and_results(tmp_path: Path
 
 @pytest.mark.parametrize(
     ("answer", "expected"),
-    [("", "gemini-important"), ("1", "gemini-important"), ("2", "qwen-tool-knowledge")],
+    [("", "gemini-important"), ("1", "gemini-important"), ("2", "qwen-tool-knowledge"),
+     ("3", "gemini-tool-knowledge")],
 )
 def test_interactive_experiment_menu(
     answer: str, expected: str, monkeypatch: pytest.MonkeyPatch

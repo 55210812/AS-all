@@ -22,6 +22,8 @@ EXPERIMENTS = {
         "GEMINI_API_KEY", "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta", "attacks949.json"),
     "qwen-tool-knowledge": Experiment("qwen-tool-knowledge", "qwen3.5-flash", "tool_knowledge", "qwen",
         "QWEN_API_KEY", "QWEN_BASE_URL", "", "qwen_tool_knowledge949.json"),
+    "gemini-tool-knowledge": Experiment("gemini-tool-knowledge", "gemini-2.5-flash", "tool_knowledge", "gemini",
+        "GEMINI_API_KEY", "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta", "gemini_tool_knowledge949.json"),
 }
 
 

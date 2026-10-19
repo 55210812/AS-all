@@ -14,6 +14,11 @@ from agentdojo.agent_pipeline.tool_execution import ToolsExecutionLoop, tool_res
 from agentdojo.functions_runtime import Function
 from agentdojo.types import text_content_block_from_string, get_text_content_as_str
 from semantic_action_frame_guard import TraceRecorder
+from as_all.native_a import AClient
+
+
+class HolisticAClient(AClient):
+    holistic = True
 
 
 class HolisticWitness(BaseModel):

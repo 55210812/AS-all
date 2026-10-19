@@ -2,11 +2,15 @@
 
 统一入口src/as_all/methods.py只注册十一种方法，不读取历史结果。
 
+新增实验`gemini-tool-knowledge`：模型为gemini-2.5-flash，十一方法各97 Clean＋949 Attack，共11,506例，共享8个案例worker。使用原生ToolKnowledgeAttack构造并独立冻结949份Gemini目标攻击，包含工具调用与占位参数指引；不读取历史实验结果。与`gemini-important`共享Gemini原生客户端和A版三方法，Guard沿用A版via-claim Prompt、Schema及证据切片，不修改方法算法。两种攻击分别使用独立运行状态、清单、请求账本和结果目录。
+
+两个Gemini实验的Holistic也使用A版接口：领域工具直接注册到functionDeclarations，各工具必填authorization_witness，system移除重复领域工具注册表。保留Holistic原始任务、评估提示词及contribute_to_score／reason字段和约束，不增加Frame、root或Guard。执行前仅剥离Witness，原生响应parts和签名完整回传；模型可见历史不出现内部代理包装。Qwen Holistic继续使用原代理接口。
+
 新增实验`qwen-tool-knowledge`：Agent与生成式防御均为qwen3.5-flash，Agent开Thinking、防御关Thinking。原生tool_knowledge949输入独立冻结；与Gemini important_instructions分开。新运行共享8个案例worker，不更改历史运行配置。
 
 Qwen AS-only三方法直接沿用原代理接口和system完整领域注册表，不经过Gemini A转换。两种Guard均使用用户2026-10-17确认的via强化版，来源`reference/qwen_via/ablation_variants.py`，源码SHA `86a41c9b8ce4469b31ed301a280c38d832a42d87454fb56fd32c17ddb19b218f`。该文件与原定向via实验冻结源码逐字一致；这是新全量实验选定的版本，不把原定向案例结果作为全量证据。Guard Prompt、裁决Schema和原证据规则保留，提醒只在有效Block后附全部Frame。
 
-原Qwen tool_knowledge的61份id/task Frame与本仓库97份中的交集逐字一致，规范JSON投影SHA `5015f7a5dc69b1fb373a859898a4de9c15ee4c7ee6a6362a9c8cad6638c50de3`，其余36份复用既有冻结来源，不生成Frame。两实验工具／Witness接口有差异，跨模型结果不能归因为纯模型差异。
+原Qwen tool_knowledge的61份id/task Frame与本仓库97份中的交集逐字一致，规范JSON投影SHA `5015f7a5dc69b1fb373a859898a4de9c15ee4c7ee6a6362a9c8cad6638c50de3`，其余36份复用既有冻结来源，不生成Frame。Gemini与Qwen工具／Witness接口有差异，跨模型结果不能归因为纯模型差异。
 
 2026-10-17 Qwen接口验收使用服务器已有Python环境，经`bash run.sh start --experiment qwen-tool-knowledge --acceptance`入口完成十一方法各一条固定Clean和Attack，共22/22正常终止，运行错误0；70次实际请求（Agent45、防御25），usage均返回，供应商未返回缓存字段，因此缓存／非缓存输入不可核验。逐例核对工具、最终回答与benchmark并绑定SHA，原始评分保留。两个AS-only Guard组共6次裁决，2次有效Block、0协议拒绝，提醒组1次完整Frame提醒实际进入下一轮输入。无需按指标补跑。IPIGuard Attack有官方模拟成功反馈，最终回答声称已发送但benchmark ASR=false；该反馈不能当真实发送证据。此22例只验收接口和执行链，不代表全量效果；Gemini的8并行仅做离线回归，原有真实验收仍为旧配置。
 
@@ -25,7 +29,7 @@ Qwen AS-only三方法直接沿用原代理接口和system完整领域注册表�
 | Injection Detection | 原content-only detector，SAFE阈值0.5、message模式；固定权重revision，不检测error通道 |
 | IPIGuard | 官方对齐DAG构造、模拟／真实执行、扩展和reflection |
 | Task Shield | 原提取、对齐、工具检查、拒绝和恢复流程，独立关闭Thinking的Judge客户端 |
-| Holistic | 原始任务＋完整历史＋contribute_to_score Witness，无Frame、无Guard |
+| Holistic | 原始任务＋完整历史＋contribute_to_score／reason Witness，无Frame、无Guard；Gemini为A版原生领域工具，Qwen为原代理 |
 | AS-only | Gemini使用A版原生领域工具；Qwen使用原代理工具；均生成动作授权Witness，无Guard |
 | AS-only＋Guard | 相同Agent，原via-claim Guard及root引用Frame／此前有效输出切片 |
 | AS-only＋Guard＋Frame提醒 | 仅有效Block后附完整冻结Frame，保留原拒绝 |

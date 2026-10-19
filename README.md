@@ -20,11 +20,13 @@ bash run.sh
 |---|---|---|---|---:|---:|
 | 1. Gemini | gemini-2.5-flash | important_instructions | 97 Clean＋949 Attack | 11,506 | 8 |
 | 2. Qwen | qwen3.5-flash | tool_knowledge | 97 Clean＋949 Attack | 11,506 | 8 |
+| 3. Gemini | gemini-2.5-flash | tool_knowledge | 97 Clean＋949 Attack | 11,506 | 8 |
 
-一次选择一个实验，不自动启动另一套。也可直接选择Qwen：
+一次选择一个实验，不自动启动其他实验。也可直接指定：
 
 ```bash
 bash run.sh start --experiment qwen-tool-knowledge
+bash run.sh start --experiment gemini-tool-knowledge
 ```
 
 随后按终端提示填写所选模型的配置：
@@ -34,7 +36,7 @@ bash run.sh start --experiment qwen-tool-knowledge
 3. **Hugging Face token**：可选，直接回车跳过。
 4. 安装和预检通过后，输入 **`RUN 11506`**，启动十一方法全量实验。
 
-模型名预设，无需填写。两套凭据分别保存在本机`.secrets.env`（GEMINI_API_KEY／GEMINI_BASE_URL与QWEN_API_KEY／QWEN_BASE_URL），权限600并被Git忽略；后续复用，不相互覆盖。脚本可能在提示密钥前安装依赖。没有tmux／cron时会提示缺少组件。
+模型名预设，无需填写。两套凭据分别保存在本机`.secrets.env`（GEMINI_API_KEY／GEMINI_BASE_URL与QWEN_API_KEY／QWEN_BASE_URL），权限600并被Git忽略；两个Gemini实验共用Gemini凭据，与Qwen凭据不相互覆盖。脚本可能在提示密钥前安装依赖。没有tmux／cron时会提示缺少组件。
 
 启动前显示所选模型、攻击、11,506例付费提示，输入`RUN 11506`才开始。十一方法共享8个案例worker，每个子进程只运行一个案例；不是每方法各8个。已终止或部分执行案例不会自动重跑，已有运行的冻结配置不改写。
 
@@ -44,17 +46,18 @@ bash run.sh start --experiment qwen-tool-knowledge
 
 No Defense、Tool Filtering、Prompt Repetition、Input Delimiting、Injection Detection、IPIGuard、Task Shield、Standard Holistic、AS-only、AS-only＋Guard、AS-only＋Guard＋Frame提醒。
 
-每种方法运行Slack、Travel、Workspace、Banking四个领域的1046例。各实验内十一方法使用一致任务和冻结攻击；Gemini与Qwen攻击分开，不混合统计。工具只操作随包提供的模拟环境。
+每种方法运行Slack、Travel、Workspace、Banking四个领域的1046例。各实验内十一方法使用一致任务和冻结攻击；各模型／攻击组合独立冻结，不混合统计。tool_knowledge攻击附带工具调用及占位参数指引。两个Gemini实验的Holistic及AS-only三方法均使用A版原生领域工具＋Witness接口，Qwen保留原代理接口。Holistic保留自身评分Witness，不使用Frame或Guard。工具只操作随包提供的模拟环境。
 
 Agent开启动态Thinking，防御生成请求关闭Thinking。各方法的实现与配置见[方法说明](docs/METHODS.md)。
 
 ## 2. 查看进度和结果
 
-启动时打印绝对路径：`results/<experiment_id>/<run_id>/`。同一次运行的十一方法统一放在该目录，两套实验分开。
+启动时打印绝对路径：`results/<experiment_id>/<run_id>/`。同一次运行的十一方法统一放在该目录，各实验分开。
 
 ```bash
 bash run.sh status
 bash run.sh status --experiment qwen-tool-knowledge
+bash run.sh status --experiment gemini-tool-knowledge
 ```
 
 - `report/summary.md`、`summary.csv`、`summary.json`：Clean／Attack总表。
@@ -73,9 +76,10 @@ bash run.sh status --experiment qwen-tool-knowledge
 ```bash
 bash feedback.sh
 bash feedback.sh --experiment qwen-tool-knowledge
+bash feedback.sh --experiment gemini-tool-knowledge
 ```
 
-默认选择Gemini最新运行；Qwen用上面的`--experiment`选择。输入`PUBLIC`确认公开上传；未登录时按提示完成GitHub浏览器登录。上传后打印反馈PR链接。
+默认选择Gemini important_instructions最新运行；其他实验用上面的`--experiment`选择。输入`PUBLIC`确认公开上传；未登录时按提示完成GitHub浏览器登录。上传后打印反馈PR链接。
 
 若存在多次实验，也可明确指定要反馈的目录：
 

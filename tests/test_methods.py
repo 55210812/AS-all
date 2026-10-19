@@ -33,11 +33,12 @@ def test_frames():
 
 
 @pytest.mark.parametrize("method", [m for m in METHODS if m != "transformers_pi_detector"])
-def test_build_no_model_or_domain_execution(method, tmp_path, monkeypatch):
+@pytest.mark.parametrize("experiment", ["gemini-important", "gemini-tool-knowledge"])
+def test_build_no_model_or_domain_execution(method, experiment, tmp_path, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-not-real")
     monkeypatch.setenv("GEMINI_BASE_URL", "https://example.invalid/v1beta")
     atomic(tmp_path / "case.json", {"domain": "slack", "task": "user_task_1"})
-    pipeline = build(method, tmp_path)
+    pipeline = build(method, tmp_path, experiment)
     assert pipeline.name == "gemini-2.5-flash"
     assert not (tmp_path / "requests.jsonl").exists()
 
