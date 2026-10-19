@@ -1,0 +1,75 @@
+{
+  "original_first_pass": {
+    "agent": {
+      "requests": 100347,
+      "responses": 100246,
+      "raw_input": 445099546,
+      "output": 29708322,
+      "cached_input": 61342100,
+      "noncached_input": 27173644,
+      "missing_usage": 101,
+      "unknown_cache": 79588,
+      "request_seconds": 578502.0492446227
+    },
+    "defense": {
+      "requests": 55881,
+      "responses": 55838,
+      "raw_input": 135932609,
+      "output": 8264414,
+      "cached_input": 10192345,
+      "noncached_input": 6334125,
+      "missing_usage": 43,
+      "unknown_cache": 53514,
+      "request_seconds": 205918.9329654388
+    }
+  },
+  "supplemental_attempts_only": {
+    "agent": {
+      "requests": 3863,
+      "responses": 3851,
+      "raw_input": 22194499,
+      "output": 1033938,
+      "cached_input": 1754557,
+      "noncached_input": 1306329,
+      "missing_usage": 12,
+      "unknown_cache": 3400,
+      "request_seconds": 22050.515027406625
+    },
+    "defense": {
+      "requests": 2656,
+      "responses": 2654,
+      "raw_input": 6164738,
+      "output": 534418,
+      "cached_input": 98112,
+      "noncached_input": 58554,
+      "missing_usage": 2,
+      "unknown_cache": 2630,
+      "request_seconds": 10083.30638619233
+    }
+  },
+  "combined_actual_usage": {
+    "agent": {
+      "requests": 104210,
+      "responses": 104097,
+      "raw_input": 467294045,
+      "output": 30742260,
+      "cached_input": 63096657,
+      "noncached_input": 28479973,
+      "missing_usage": 113,
+      "unknown_cache": 82988,
+      "request_seconds": 600552.5642720293
+    },
+    "defense": {
+      "requests": 58537,
+      "responses": 58492,
+      "raw_input": 142097347,
+      "output": 8798832,
+      "cached_input": 10290457,
+      "noncached_input": 6392679,
+      "missing_usage": 45,
+      "unknown_cache": 56144,
+      "request_seconds": 216002.23935163114
+    }
+  },
+  "note": "Includes actual usage from both the first and supplemental attempts."
+}
