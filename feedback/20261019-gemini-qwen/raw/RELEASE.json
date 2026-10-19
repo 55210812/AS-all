@@ -1,0 +1,310 @@
+{
+  "release_url": "https://github.com/jh-han-wk/AS-all/releases/tag/raw-traces-20261019T050853Z",
+  "repository": "jh-han-wk/AS-all",
+  "tag": "raw-traces-20261019T050853Z",
+  "case_attempts": 23722,
+  "first_pass_cases": 23012,
+  "supplemental_cases": 710,
+  "original_files": 161822,
+  "raw_bytes": 10439724817,
+  "compressed_archive_bytes": 1898510076,
+  "raw_content_preserved_byte_for_byte": true,
+  "redacted_files": 0,
+  "all_remote_assets_sha256_verified": true,
+  "assets": [
+    {
+      "name": "ARCHIVES.json",
+      "bytes": 10419,
+      "sha256": "f0f7352d99d2a69f8d1136ab3b8c5a897eb56b9f26bfb295ad6621a3e9a4418f",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/ARCHIVES.json"
+    },
+    {
+      "name": "CREDENTIAL_SCAN.json",
+      "bytes": 18292,
+      "sha256": "b6f1dd6cf0726ab126f43ae2b333d71c86a67d2aacf013a6ce437ce8b6510f2d",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/CREDENTIAL_SCAN.json"
+    },
+    {
+      "name": "DATASET.json",
+      "bytes": 547,
+      "sha256": "85408fcc367222819ab1d3ad9dba9dcc6872e76c401eff89df43e18e7c8c484e",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/DATASET.json"
+    },
+    {
+      "name": "FILE_MANIFEST.json.gz",
+      "bytes": 8537322,
+      "sha256": "7d0c4611c1cb5b870ee9f7921632b806d34fbc36004566764e9f1a6b76e51ed0",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/FILE_MANIFEST.json.gz"
+    },
+    {
+      "name": "FINAL_VIEW.json.gz",
+      "bytes": 460700,
+      "sha256": "d34fd281bc2ca60b41a8382dfc3ec1ef2419e06996aeea0dd883806c15201e59",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/FINAL_VIEW.json.gz"
+    },
+    {
+      "name": "README.md",
+      "bytes": 1875,
+      "sha256": "32bfb47e955c1e5aec95c198b6e45cfa3c785d62b63ddbf7dd9b128ddd8d9c42",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/README.md"
+    },
+    {
+      "name": "SHA256SUMS",
+      "bytes": 5220,
+      "sha256": "ccd741b0b2e2e1b7b02f9733b36dc0bdc15ed684d601a4356d74c53dd5e54579",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/SHA256SUMS"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0000",
+      "bytes": 47185920,
+      "sha256": "d53255d1d78adf7eeeeb6ee067051e4c9651b64f82743be419a32e68b4a7bcee",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0000"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0001",
+      "bytes": 47185920,
+      "sha256": "5f29504bdf2555418c5ffe03c7cae99fa331aa5fd5ee4896fc9016ce9412d5ea",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0001"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0002",
+      "bytes": 47185920,
+      "sha256": "77272b36a4b3c70bd305c0364ae3a0cf6e9f9c1999fc47bda55755b80a09b364",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0002"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0003",
+      "bytes": 47185920,
+      "sha256": "7c3a32ca1eea5fd4841ddebfe3733b6b33f72b7aca807c325a71028983cdd23a",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0003"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0004",
+      "bytes": 47185920,
+      "sha256": "c751575952e239a2976a0be56dda02f70ba65e6c63fc8dfe3631ab6f38642fc3",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0004"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0005",
+      "bytes": 47185920,
+      "sha256": "43478a26b43b9f086fb5f08c659714fc5e9023928ab5d4cdc32c70fea13cda6f",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0005"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0006",
+      "bytes": 47185920,
+      "sha256": "46ecc49545171d518160feaecfac047d11ad161bf9594bb6244e942ef2d8c8cc",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0006"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0007",
+      "bytes": 47185920,
+      "sha256": "e592085f27e1904f128cc412485a78510ff5e80b0c726b371e9a721f371951ea",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0007"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0008",
+      "bytes": 47185920,
+      "sha256": "f0af9767217acfbb32694e78ca09323b5a67d5d8949866fd6c4bf2dd34ece636",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0008"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0009",
+      "bytes": 47185920,
+      "sha256": "4927bfcc2689bfa9fdc7ea230d517989813262bc04a090ce003bebcfedc0714b",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0009"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0010",
+      "bytes": 47185920,
+      "sha256": "91207a129d825d765d308f0192d805c8cbf426c6c0378dbb531beb7e5d0724e8",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0010"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0011",
+      "bytes": 47185920,
+      "sha256": "65b7160b76212f40666a4919eccfd59c9e53de84e62b17bd8f8f98dc0de33eac",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0011"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0012",
+      "bytes": 47185920,
+      "sha256": "8278b54ddafa0553147e7dda159050c0cea9b57334f81efd2092c219b4d3e3fa",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0012"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0013",
+      "bytes": 47185920,
+      "sha256": "96e56e91d8327e2f08b909b995329e077a372d8ec80f237fbef2c73fdba97d78",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0013"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0014",
+      "bytes": 47185920,
+      "sha256": "43f2371cb1112bb1038e8f5b439f17d913d0d41171fc52bd2a90c62c5b70d022",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0014"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0015",
+      "bytes": 47185920,
+      "sha256": "a2f94b4bd298ebee5e6bb12e4ade0160de25828f7328400ac87cf1de9a2c77c5",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0015"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0016",
+      "bytes": 47185920,
+      "sha256": "efcb891ebf3ee679854448883c8340de26d86199d4e10c8fee16f91fc1f5af63",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0016"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0017",
+      "bytes": 47185920,
+      "sha256": "f0fd154d0b438b3123adacf2077c5e28a08a092edb1e5cff55640102a315cbf6",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0017"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0018",
+      "bytes": 47185920,
+      "sha256": "84b35883ccc766bca5e5ca0d36f9305bd534b705d55227c8f590fea966576fc8",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0018"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0019",
+      "bytes": 47185920,
+      "sha256": "2af8ff5f8d673c717eb8796bff35def8d154e8a381b055a964530fb008a152d9",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0019"
+    },
+    {
+      "name": "gemini-important.first_pass.tar.gz.part-0020",
+      "bytes": 34584954,
+      "sha256": "23f290d16291b3a86462d7bd3544ec9b3f52e85abff755ebef71cb3b5d40e150",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.first_pass.tar.gz.part-0020"
+    },
+    {
+      "name": "gemini-important.supplemental.tar.gz.part-0000",
+      "bytes": 47185920,
+      "sha256": "1bfb6cb5ca82c9c8b66a80c929e7599ad6efcd54fcbcd3d24e3d64dc80955e87",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.supplemental.tar.gz.part-0000"
+    },
+    {
+      "name": "gemini-important.supplemental.tar.gz.part-0001",
+      "bytes": 2390469,
+      "sha256": "ab2f6aaa9f1e4382d0f0e979990d03acee7286c7d9653ed02de93b18ceffaf73",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/gemini-important.supplemental.tar.gz.part-0001"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0000",
+      "bytes": 47185920,
+      "sha256": "84888bbf8b8def406b29465267b384b6f3c01d95f50e32fb9418e3c917c0aa2d",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0000"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0001",
+      "bytes": 47185920,
+      "sha256": "c639309ca7764e17ee0a1620654ee03cf3362bc2a14005cc9aa982ddb483009a",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0001"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0002",
+      "bytes": 47185920,
+      "sha256": "ca103755e979984a3f61140187174cb3696b2183eb69cbe2c7169097d31377bb",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0002"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0003",
+      "bytes": 47185920,
+      "sha256": "ec3ecfc8184c37c9e903cc3579c3be72000b7cf63dbc9d5ec6608617a545c5e9",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0003"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0004",
+      "bytes": 47185920,
+      "sha256": "8a67162c1bfe652c284bd260ef1bc47d19cc01336c005dfcda3b49f859af1bdc",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0004"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0005",
+      "bytes": 47185920,
+      "sha256": "782ec57b8b7554bb7dd2d38578e77261fb2cb0d9b3af4a3026360cd7aa9093ad",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0005"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0006",
+      "bytes": 47185920,
+      "sha256": "5999e79978f5cd8f41b2a52111c6eb373ee6527fd86ad46915a0822167163242",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0006"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0007",
+      "bytes": 47185920,
+      "sha256": "e01c9844e70a10d14ac58f157c5e5463d1a47fdab8d7ee1dfdeba849af797641",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0007"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0008",
+      "bytes": 47185920,
+      "sha256": "4bd2ce0104c477083fd78b6a233d08831ce034dd29197a35df087faf5efc4970",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0008"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0009",
+      "bytes": 47185920,
+      "sha256": "0452f54074e73d771f563884d6bb3dbb7689cfe297e515c759efed2b6b612925",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0009"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0010",
+      "bytes": 47185920,
+      "sha256": "20eba777148983d28e21ac15e651e6b01c906044d2d2bfd1d53a19d02971fc78",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0010"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0011",
+      "bytes": 47185920,
+      "sha256": "554b77c1f524bf16ff6ae742636d663bee3b5335b31a5dc96a0a0a5d906fd843",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0011"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0012",
+      "bytes": 47185920,
+      "sha256": "98b0c34b45f83779f521ba1c16398104cccaa8de4b2eccda65c7ba9f718b0452",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0012"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0013",
+      "bytes": 47185920,
+      "sha256": "a374d2ac993f58761b658ce1b7bf85e8487d5842d0596316bd7f04e65d5086dd",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0013"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0014",
+      "bytes": 47185920,
+      "sha256": "81ce617cb7be2035250aa1fe83235211455cf96d3ed3a26376ab31d55e10d372",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0014"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0015",
+      "bytes": 47185920,
+      "sha256": "ce505b2391f020ecd168299c18b3d092fa9b00c7b2a376f33baf8de8a5a95d2f",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0015"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0016",
+      "bytes": 47185920,
+      "sha256": "ec8ac171162fb61485edf4ed5adde4f04fa0e70fe7777894c5736e94d1405650",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0016"
+    },
+    {
+      "name": "qwen-tool-knowledge.first_pass.tar.gz.part-0017",
+      "bytes": 37106631,
+      "sha256": "42a417a194b5457f27ab527f49d3187cbd79dfa749438aa67c773be532cf7798",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.first_pass.tar.gz.part-0017"
+    },
+    {
+      "name": "qwen-tool-knowledge.supplemental.tar.gz.part-0000",
+      "bytes": 31363062,
+      "sha256": "d31ae5b14ee8c97e7bcd947a02a39f3ce0b47b1f1d3267bfa1508fcead421951",
+      "url": "https://github.com/jh-han-wk/AS-all/releases/download/untagged-b22880af6363118994e3/qwen-tool-knowledge.supplemental.tar.gz.part-0000"
+    }
+  ]
+}

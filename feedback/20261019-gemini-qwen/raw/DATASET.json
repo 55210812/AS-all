@@ -1,0 +1,18 @@
+{
+  "recorded_case_attempts": 23722,
+  "counts": {
+    "first_pass:gemini-important": 11506,
+    "supplemental:gemini-important": 430,
+    "first_pass:qwen-tool-knowledge": 11506,
+    "supplemental:qwen-tool-knowledge": 280
+  },
+  "files": 161822,
+  "bytes": 10439724817,
+  "finding_kinds": {
+    "credential_pattern": 41,
+    "path_pattern": 93
+  },
+  "raw_content_preserved_byte_for_byte": true,
+  "credential_redactions": 0,
+  "scope": "All recorded files for 23012 first-pass cases and 710 supplemental attempts, without outcome filtering."
+}

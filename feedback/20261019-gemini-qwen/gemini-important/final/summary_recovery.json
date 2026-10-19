@@ -1,0 +1,13 @@
+{
+  "experiment": "gemini-important",
+  "cases": 11506,
+  "first_pass_errors": 430,
+  "supplemental_attempts": 430,
+  "recovered_errors": 353,
+  "remaining_errors": 77,
+  "first_pass_preserved": true,
+  "original_code_unchanged": true,
+  "policy": "One additional attempt for each first-pass runtime error; all other cases kept.",
+  "costs_note": "summary_all_attempt_costs_both_models.json combines both models and both attempts; do not sum duplicate copies.",
+  "provenance": "First-pass reports and each-case error comparison are preserved below provenance/."
+}
